@@ -338,12 +338,19 @@ int socket(int family, ine type, int protocol);
 /*返回:若成功则为非负描述符,若出错则为-1*/
 ```
 - family参数指明协议族
+
 ![](images/16.jpg)
+
 - type参数指明套接字类型
+
 ![](images/17.jpg)
+
 - protocol参数应设为某个协议类型常值，或者设为0，以选择所给定family和type组合的系统默认值。
+
 ![](images/18.jpg)
+
 - 并非所有套接字family与type的组合都是有效的
+
 ![](images/20.jpg)
 
 ## 4.2 connect函数
@@ -379,6 +386,7 @@ int bind(int sockfd,const struct sockaddr *myaddr,socklen_t addrlen);
 > 对于TCP，调用bind函数可以指定一个端口号，或指定一个IP地址，也可以两者都指定，还可以都不指定。
 
 ![](images/21.jpg)
+
 - 如果指定端口号为0，那么内核就在bind被调用时选择一个临时端口
 - 如果指定IP地址为通配地址，那么内核将等到套接字已连接（TCP）或己在套接字上发出数据报（UDP）时才选择一个本地IP地址。
 > 对于IPv4来说，通配地址由常值INADDR_ANY来指定，其值一般为0.
@@ -509,9 +517,8 @@ sockfd_to_family(int sockfd)
 # 第五章 TCP C/S程序示例
 
 **简单的回射客户/服务器**
+
 ![](images/24.jpg)
-
-
 
 ## 5.1 POSIX信号处理
 
