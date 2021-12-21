@@ -34,6 +34,26 @@ ssize_t readline(int fd, char *vptr, size_t maxlen)
   return (n);
 }
 
+/*普通客户端消息处理函数*/
+void str_cli(int sockfd) 
+{
+  /*发送和接收缓冲区*/
+  char sendline[MAXLINE], recvline[MAXLINE];
+  while (fgets(sendline, MAXLINE, stdin) != NULL) {
+    write(sockfd, sendline, strlen(sendline));
+    //从服务器读入回射行，写到标准输出
+    if (readline(sockfd, recvline, MAXLINE) == 0) {
+      printf("server terminated prematurely");
+      exit(1);
+    }  // if
+
+    if (fputs(recvline, stdout) == EOF) {
+      printf("fputs error");
+      exit(1);
+    }  // if
+  }    // while
+}
+
 int main(int argc, char **argv) 
 {
   /*声明套接字和链接服务器地址*/
@@ -68,21 +88,7 @@ int main(int argc, char **argv)
   }  // if
 
   /*(4) 消息处理 str_cli*/
-  char sendline[MAXLINE], recvline[MAXLINE];
-
-  while (fgets(sendline, MAXLINE, stdin) != NULL) {
-    write(sockfd, sendline, strlen(sendline));
-    //从服务器读入回射行，写到标准输出
-    if (readline(sockfd, recvline, MAXLINE) == 0) {
-      printf("server terminated prematurely");
-      exit(1);
-    }  // if
-
-    if (fputs(recvline, stdout) == EOF) {
-      printf("fputs error");
-      exit(1);
-    }  // if
-  }    // while
+  str_cli(sockfd);
 
   /*(5) 关闭套接字*/
   if (close(sockfd) == -1) {
