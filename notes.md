@@ -767,10 +767,191 @@ int shutdown (int sockfd,int howto) ; /*返回:若成功则为0，若出错则�
 - SHUT_WR   关闭连接的写这一半——对于TCP套接字，这称为半关闭。当前留在套接字发送缓冲区中的数据将被发送掉，后跟TCP的正常连接终止序列。
 - SHUT_RDWR 连接的读半部和写半部都关闭——这与调用shutdown两次等效:第一次调用指定SHLT_RD，第二次调用指定SHUT_WR。
 
-## 6.5 TCP回射服务器程序（select)
+## 6.5 TCP回射服务器程序 (select)
 
 - TCP回射服务端程序：[tcpserv_select]()    
 - TCP回射客户端程序：[tcpcli_select]()
+
+### 拒绝服务型攻击
+
+当一个服务器在处理多个客户时，它绝对不能阻塞于只与单个客户相关的某个函数调用。否则可能导致服务器被挂起，拒绝为所有其他客户提供服务。这就是所谓的拒绝服务(denial of service）型攻击。
+
+可能的解决办法包括:
+1. 使用非阻塞式IO
+2. 让每个客户由单独的控制线程提供服务（例如创建一个子进程或一个线程来服务每个客户);
+3. 对I/O操作设置一个超时。
+
+## 6.6 poll函数
+
+poll提供的功能与select类似，不过在处理流设备时，它能够提供额外的信息。
+```c++
+#include <poll.h>
+int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
+/*返回:若有就绪描述符则为其数目，若超时则为0，若出错则为-1*/
+```
+- fdarray参数 是指向一个结构数组第一个元素的指针。每个数组元素都是一个pollfd结构，用于指定测试某个给定描述符fd的条件。
+    ```c++
+    struct pollfd {
+        int     fd;         /* descriptor to check */
+        short   events;     /*events of intereet on fd */
+        short   revents;    /*events that occurred on fa */
+    };
+    ```
+    要测试的条件由events成员指定，函数在相应的revents成员中返回该描述符的状态。
+
+    ![](images/33.jpg)
+
+    poll识别三类数据:普通(normal)、优先级带(priority band）和高优先级(high priority)
+
+- timeout参数 指定poll函数返回前等待多长时间。它是一个指定应等待毫秒数的正值。
+
+    ![](images/34.jpg)
+
+    > INFTIM常值被定义为一个负值。如果系统不能提供毫秒级精度的定时器，该值就向上含入到最接近的支持值。
+
+当发生错误时，poll函数的返回值为-1，若定时器到时之前没有任何描述符就绪，则返回0，否则返回就绪描述符的个数，即revents成员值非0的描述符个数。
+
+## 6.7 TCP回射服务器程序 (poll)
+
+- TCP回射服务端程序：[tcpserv_poll]()    
+- TCP回射客户端程序：[tcpcli_poll]()
+
+
+## 6.8 epoll函数
+
+select的套接字等待集合为fd_set，poll的套接字等待集合为pollfd结构体。但是由于select和poll的套接字等待集合的容量太小，一般是1024，使得进程不能同时处理大规模I/O请求，因此引入epoll。
+
+poll提供了三个函数，epoll_create是创建一个epoll句柄；epoll_ctl是注册要监听的事件类型；epoll_wait则是等待事件的产生。
+
+### epoll_create
+```c++
+#include <sys/epoll.h>
+int epoll_create(int size); /*返回：若成功则为epoll文件描述符，若出错则为-1*/
+```
+- 参数size用来设置epoll将要监听的描述符的个数。
+> 注意，这个size参数和select函数的第一个参数maxfdp1有所不同：maxfdp1定义待测试的最大描述符+1，但是size是硬性的数量，若size=6，则意味epoll通知了内核有6个描述符正要被监听。
+
+需要终止时，与其他文件描述符相同，也要调用close函数。
+
+### epoll_ctl
+```c++
+#include <sys/epoll.h>
+int epoll_ctl(int epfd, int op, int fd, struct poll_event *event); 
+/*返回：若成功则为0，若出错则为-1*/
+```
+- epfd参数 为注册监视对象的epoll文件描述符
+- op参数 用于制定监视对象的添加、删除或更改等操作
+    - EPOLL_CTL_ADD：注册文件描述符
+    - EPOLL_CTL_DEL：删除文件描述符
+    - EPOLL_CTL_MOD：修改注册的文件描述符
+- fd参数 为需要注册的监视对象文件描述符
+- event参数 为监视对象的事件类型。epoll 通过epoll_event结构体保存事件的文件描述符集合。
+    ```c++
+    struct epoll_event {
+        __uint32_t events;
+        epoll_data_t data;
+    };
+    typedef union epoll_data {
+        void *ptr;
+        int fd;
+        __uint32_t u32;
+        __uint64_t u64;
+    } epoll_data_t;
+    ```
+    调用语句：
+    ```c++
+    struct epoll_event event;
+    ...
+    event.events=EPOLLIN;//发生需要读取数据的情况时
+    event.data.fd=sockfd;
+    epoll_ctl(epfd,EPOLL_CTL_ADD,sockfd,&event);
+    ...
+    ```
+    events 中可以保存的常量及所指的事件类型:
+    - EPOLLIN：需要读取数据的情况
+    - EPOLLOUT：输出缓冲为空，可以立即发送数据的情况
+    - EPOLLPRI：收到紧急数据(OOB)数据的情况
+    - EPOLLRDHUP：断开连接或半关闭的情况，这在边缘触发方式下非常有用
+    - EPOLLERR：发生错误的情况
+    - EPOLLET：以边缘触发的方式得到事件通知
+    - EPOLLONESHOT：发生一次事件后，相应文件描述符不再收到事件通知。因此需要向 epoll_ctl 函数的第二个参数传递 EPOLL_CTL_MOD ，再次设置事件。
+
+### epoll_wait
+```c++
+#include <sys/epoll.h>
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+/*返回：若成功则为发生事件的文件描述符，若失败则为 -1*/
+```
+- epfd参数 为注册监视对象的epoll文件描述符
+- events和为maxevents分别为保存发生事件的文件描述符集合的结构体地址和最大事件数
+- timeout 指定epoll函数返回前等待多长时间。
+
+### 水平触发和边缘触发
+
+epoll有EPOLLLT和EPOLLET两种触发模式，LT是默认的模式，ET是“高速”模式。
+
+![](images/35.jpg)
+
+**水平触发**
+
+水平触发(LT)方式中，只要输入缓冲有数据就会一直通知该事件，即只要fd对应的缓冲区有数据epoll_wait就会返回，返回的次数和发送数据的次数没有关系，这是epoll默认的工作模式。
+
+**水平触发的时机：**
+
+- 对于读操作，只要缓冲内容不为空，LT模式返回读就绪。
+- 对于写操作，只要缓冲区还不满，LT模式会返回写就绪。
+
+select 模型是以条件触发的方式工作的
+
+epoll为什么要有EPOLLET触发模式？
+> 如果采用EPOLLLT模式的话，系统中一旦有大量你不需要读写的就绪文件描述符，它们每次调用epoll_wait都会返回，这样会大大降低处理程序检索自己关心的就绪文件描述符的效率.。而采用EPOLLET这种边缘触发模式的话，当被监控的文件描述符上有可读写事件发生时，epoll_wait()会通知处理程序去读写。如果这次没有把数据全部读写完(如读写缓冲区太小)，那么下次调用epoll_wait()时，它不会通知你，也就是它只会通知你一次，直到该文件描述符上出现第二次可读写事件才会通知你,这种模式比水平触发效率高，系统不会充斥大量你不关心的就绪文件描述符。
+
+**边缘触发**
+
+边缘触发(ET)方式中，输入缓冲收到数据时仅注册 1 次该事件。即使输入缓冲中还留有数据，也不会再进行注册。即检测到有 I/O 事件时，通过 epoll_wait 调用会得到有事件通知的文件描述符，对于每一个被通知的文件描述符，如可读，则必须将该文件描述符一直读到空，让 errno 返回 EAGAIN 为止，否则下次的 epoll_wait 不会返回余下的数据，会丢掉事件。如果ET模式不是非阻塞的，那这个一直读或一直写势必会在最后一次阻塞。
+> read 函数发现输入缓冲中没有数据可读时返回 -1，同时在 errno 中保存 EAGAIN 常量
+
+- 阻塞边沿触发 block-ET     
+    fd文件属性默认为阻塞，client给server发一次数据，server的epoll_wait就返回一次，无论缓冲区是否还有数据，都只返回一次，此时如果使用while(recv())可以读完数据，但是读到最后一次recv()会阻塞。
+- 非阻塞边沿触发nonblock-ET     
+    这个就是在阻塞的基础上更改fd的属性，可以利用open函数或者fcntl函数更改
+    ```c++
+    #include <fcntl.h>
+    int fcntl(int fields, int cmd, ...);
+    /*返回：成功则为 cmd 参数相关值，若失败则为 -1*/
+    ```
+    - filedes : 属性更改目标的文件描述符
+    - cmd : 表示函数调用目的
+        - F_GETFL:获得第一个参数所指的文件描述符属性（int 型）
+        - F_SETFL:更改文件描述符属性
+
+    将文件（套接字）改为非阻塞模式，需要如下  2 条语句:
+    ```c++
+    int flag = fcntl(fd,F_GETFL,0);
+    fcntl(fd,F_SETFL,flag|O_NONBLOCK)
+    ```
+**边缘触发的时机:**
+
+对于读操作:
+- 当缓冲区由不可读变为可读的时候，即缓冲区由空变为不空的时候。
+- 当有新数据到达时，即缓冲区中的待读数据变多的时候。
+- 当缓冲区有数据可读，且应用进程对相应的描述符进行EPOLL_CTL_MOD 修改EPOLLIN事件时。
+
+对于写操作:
+- 当缓冲区由不可写变为可写时。
+- 当有旧数据被发送走，即缓冲区中的内容变少的时候。
+- 当缓冲区有空间可写，且应用进程对相应的描述符进行EPOLL_CTL_MOD 修改EPOLLOUT事件时。
+-----
+**总结：**
+- ET模式（边缘触发）：只有数据到来才触发，不管缓存区中是否还有数据，缓冲区剩余未读尽的数据不会导致epoll_wait返回；
+- LT 模式（水平触发，默认）：只要有数据都会触发，缓冲区剩余未读尽的数据会导致epoll_wait返回。
+
+## 6.9 TCP回射服务器程序(epoll)
+
+- TCP回射服务端程序：[tcpserv_epoll]()    
+- TCP回射客户端程序：[tcpcli_epoll]()
+
+# 第七章 套接字选项
 
 
 
