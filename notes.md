@@ -953,6 +953,212 @@ epoll为什么要有EPOLLET触发模式？
 
 # 第七章 套接字选项
 
+## 7.1 getsockopt和setsockopt函数
+这两个函数仅用于套接字。
+- setsockopt从*optvat中取得选项待设置的新值；
+- getsockopt则把已获取的选项当前值存放到*optval中；
+```c++
+#include <sys/socket.h>
+int getsockopt(int sockfd, int level,int optname,void *optval,socklen_t *optlen);
+int setsockopt (int sockfd, int level,int optname,const void *optval,socklen_t optlen);
+/*均返回:若成功则为0。若出错则为-1*/
+```
+- sockfd必须指向一个打开的套接字描述符
+- level(级别)指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码（例如IPv4、IPv6、TCP或SCTP)。
+- optval是一个指向某个变量(*optval)的指针
+
+![](images/36.jpg)
+
+![](images/38.jpg)
+
+![](images/37.jpg)
+
+## 7.2 fcntl函数
+fcntl函数可执行各种描述符控制操作。
+
+![](images/39.jpg)
+
+- 非阻塞式I/O       
+通过使用F_SETFL命令设置O_NONBLOCK文件状态标志，我们可以把一个套接字设置为非阻塞型。
+- 信号驱动式IO      
+通过使用F_SETFL命令设置O_ASYNC文件状态标志，我们可以把一个套接字设置成一旦其状态发生变化，内核就产生一个STGIO信号。
+- F_SETOWN命令允许我们指定用于接收STGIO和SIGURC信号的套接字属主(进程ID或进程组ID)。     
+其中STGIO信号是套接字被设置为信号驱动式I/O型后产生的，SIGURG信号是在新的带外数据到达套接字时产生的
+
+```c++
+#include <fcntl.h>
+int fcntl(int fd，int cmd,... /* int arg */ );
+/*返回,若成功则取决于cmd，若出错则为-1*/
+```
+每种描述符（包括套接字描述符）都有一组由F_GETFL命令获取或由F_SETFL命令设置的文件标志。其中影响套接字描述符的两个标志是:
+- O_NONBLOCK-———非阻塞式I/O;
+- O_ASYNC———信号驱动式IO。
+
+# 第八章 基本UDP套接字编程
+
+UDP是无连接不可靠的数据报协议，非常不同于TCP提供的面向连接的可靠字节流。使用UDP编写的一些常见的应用程序有:DNS(域名系统)、NFS（网络文件系统）和SNMP(简单网络管理协议)。
+
+![](images/40.jpg)
+
+## 8.1 recvfrom和sendto函数
+这两个函数类似于标准的read和write函数，不过需要三个额外的参数。
+```c++
+#include <sys/socket.h>
+ssize_t recvfrom (int sockfd, void *buff, size_t nbytes,int flags ,
+                  struct sockaddr *from, socklen_t *addrlen );
+ssize_t sendto(int sockfil,const void *buff, size_t nbytes, int flags ,
+               const struct sockaddr *to,socklen_t *addrlen ) ;
+/*均返回:若成功则为读或写的字节数，若出错则为-l*/
+```
+- 前三个参数sockfd、buff和nbytes等同于read和write函数的三个参数:描述符、指向读入或写出缓冲区的指针和读写字节数。
+- sendto的to参数指向一个含有数据报接收者的协议地址（例如IP地址及端口号）的套接字地址结构，其大小由addrlen参数指定。
+- recvfrom的from参数指向一个将由该函数在返回时填写数据报发送者的协议地址的套接字地址结构，而在该套接字地址结构中填写的字节数则放在addrlen参数所指的整数中返回给调用者。
+> 注意，sendto的最后一个参数是一个整数值，而recvfrom的最后一个参数是一个指向整数值的指针（即值-结果参数)。
+
+## 8.2 UDP 回射C/S 程序
+
+![](images/41.jpg)
+
+从客户角度总结UDP客户/服务器
+
+![](images/42.jpg)
+
+从服务器角度总结UDP客户/服务器
+
+![](images/43.jpg)
+
+服务器可从到达的IP数据报中获取的信息
+
+![](images/44.jpg)
+
+未连接UDP C/S 程序：
+
+- TCP回射服务端程序：[udpserv]()    
+- TCP回射客户端程序：[udpcli]()
+
+### UDP的connect函数 
+
+UDP套接字调用connect:没有三路握手过程。内核只是检查是否存在立即可知的错误，记录对端的IP地址和端口号(取自传递给connect的套接字地址结构)，然后立即返回到调用进程。
+- 未连接UDP套接字(unconnected UDP socket)，新创建UDP套接字默认如此;
+- 已连接UDP套接字(connected UDP socket)，对UDP套接字调用connect的结果。
+
+对于已连接UDP套接字，与默认的未连接UDP套接字相比，发生了三个变化:
+1. 再也不能给输出操作指定目的IP地址和端口号。也就是说，不使用sendto,而改用write或send。
+2. 不必使用recvfrom以获悉数据报的发送者，而改用read、recv或recvmsg。
+3. 由已连接UDP套接字引发的异步错误会返回给它们所在的进程，而未连接UDP套接字不接收任何异步错误。
+
+![](images/45.jpg)
+
+![](images/46.jpg)
+
+### 给一个UDP套接字多次调用connect
+
+拥有一个已连接UDP套接字的进程可出于下列两个目的之一再次调用connect:
+- 指定新的IP地址和端口号;
+- 断开套接字。
+
+连接UDP C/S 程序：
+
+- TCP回射服务端程序：[udpserv_cnt]()    
+- TCP回射客户端程序：[udpcli_cnt]()
+
+## 8.2 UDP 回射C/S 程序 (select)
+
+- TCP回射服务端程序：[udpserv_select]()    
+- TCP回射客户端程序：[udpcli_select]()
+
+# 第九章 线程
+
+fork调用存在一些问题：
+- fork是昂贵的。fork要把父进程的内存映像复制到子进程,并在子进程中复制所有描述符，等等。
+- fork返回之后父子进程之间信息的传递需要进程间通信（IPC)机制。
+
+线程的创建可能比进程的创建快10~100倍。同一进程内的所有线程共享相同的全局内存。这使得线程之间易于共享信息，然而伴随这种简易性而来的却是同步(synchronization)问题。
+
+同一进程内的所有线程除了共享全局变量外还共享;
+- 进程指令:
+- 大多数数据;
+- 打开的文件（即描述符);
+- 信号处理函数和信号处置;
+- 当前工作目录;
+- 用户ID和组ID。
+
+不过每个线程有各自的:
+- 线程ID;
+- 寄存器集合,包括程序计数器和栈指针;
+- 栈(用于存放局部变量和返回地址);
+- errno;
+- 信号掩码;
+- 优先级。
+
+## 9.1 基本线程函数:创建和终止
+
+### pthread_create函数
+当一个程序由exec启动执行时，称为初始线程(initial thread)或主线程(main thread)的单个线程就创建了。其余线程则由pthread_create函数创建。
+```c++
+#include <pthread.h>
+int pthread_create(pthread_t *tid,const pthread_attr_t *attr ,
+                   void * (* func) (void *) , void *arg) ;
+/*返回:若成功则为0。若出错则为正的Exxx值*/
+```
+- tid指针 返回成功创建的线程ID。
+- attr指针 指定每个线程的属性:优先级、初始栈大小、是否应该成为一个守护线程，等等
+- func和arg 为该线程执行的函数及其参数。
+
+### pthread_ join函数
+可以通过调用pthread_join等待一个给定线程终止。对比线程和UNIX进程，pthread_create类似于fork，pthread_join类似于waitpid。
+```c++
+#include <pthread.h>
+int pthread_join (pthread_t *tid, void **status ) ;
+/*返回:若成功则为0，若出错则为正的Exxx值*/
+```
+- tid 要等待线程的tid ,Pthread没有办法等待任意一个线程
+- status指针 如果非空，来自所等待线程的返回值(一个指向某个对象的指针)将存入由status指向的位置。
+
+### pthread_ self函数
+每个线程都有一个在所属进程内标识自身的ID。线程ID由pthread_create返回，而且已经看到pthread_join使用它。每个线程使用pthread_self获取自身的线程ID。
+```c++
+#include <pthread.h>
+pthread_t pthread_self (void) ;
+/*返回:调用线程的线程ID*/
+```
+对比线程和UNIX进程,pthread_self类似于getpid。
+
+### pthread_detach函数
+一个线程或者是可汇合的(joinable，默认值)，或者是脱离的(detached)。当一个可汇合的线程终止时，它的线程ID和退出状态将留存到另一个线程对它调用pthread_join。脱离的线程却像守护进程，当它们终止时，所有相关资源都被释放，我们不能等待它们终止。
+
+pthread_detach函数把指定的线程转变为脱离状态。
+```c++
+#include <pthread.h>
+int pthread_detach (pthread_t tid) ;
+/*返回:若成功则为0。若出错则为正的Exxxe值*/
+```
+本函数通常由想让自己脱离的线程调用，就如以下语句: `pthread_detach (pthread_self());`
+
+### pthread_exit函数
+让一个线程终止的方法之一是调用pthread_exit。
+```c++
+#include <pthread.h>
+void pthread_exit (void *status ) ;
+/*不返回到调用者*/
+```
+让一个线程终止的另外两个方法是:
+- 启动线程的函数（即pthread_create的第三个参数）可以返回。既然该函数必须声明成返回一个void指针，它的返回值就是相应线程的终止状态。
+- 如果进程的main函数返回或者任何线程调用了exit，整个进程就终止，其中包括它的任何线程。
+
+## 9.2 使用线程的TCP回射服务器程序
+
+- TCP回射服务端程序：[udpserv_thread]()    
+- TCP回射客户端程序：[udpcli_thread]()
+
+
+
+
+
+
+
+
+
 
 
 
