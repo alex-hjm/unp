@@ -9,7 +9,7 @@ readn(int fd, void *vptr, size_t n)
 	ssize_t	nread;
 	char	*ptr;
 
-	ptr = vptr;
+	ptr = (char	*)vptr;
 	nleft = n;
 	while (nleft > 0) {
 		if ( (nread = read(fd, ptr, nleft)) < 0) {

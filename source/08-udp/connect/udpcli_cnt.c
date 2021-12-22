@@ -22,7 +22,7 @@ void dg_cli(FILE *fp, int sockfd, const struct sockaddr *pservaddr,
   }
 
   while (fgets(sendline, MAXLINE, fp) != NULL) {
-    if (write(sockfd, sendline, strlen(sendline)) !=trlen(sendline)) {
+    if (write(sockfd, sendline, strlen(sendline)) !=strlen(sendline)) {
       printf("write error");
       exit(1);
     }  // if
