@@ -6,11 +6,11 @@
 
 ## 1.1 一个简单的时间获取客户程序
 
-代码：C: [daytimetcpcli]() C++: [daytimetcpcli]()
+代码：[daytimetcpcli](source/01-info/daytimetcpcli.c) 
 
 ## 1.2 一个简单的时间获取服务器程序
 
-代码：C: [daytimetcpsrv]() C++: [daytimetcpsrv]()
+代码：[daytimetcpsrv](source/01-info/daytimetcpsrv.c) 
 
 ## 1.3 OSI模型
 
@@ -247,7 +247,7 @@ getpeername (unixfd,(struct sockaddr *)&cli, &len) ;
 
 ![](images/15.jpg)
 
-确定主机字节序的程序: [byteorder]()
+确定主机字节序的程序: [byteorder](source/03-socket/byteorder.c)
 
 主机字节序和网络字节序之间转换函数：
 ```c++
@@ -322,9 +322,9 @@ ssize_t written(int filedes ,const void *buff ,size_t nbytes ) ;
 ssize_t readline(int filedes,void *buff, size_t maxlen) ;
 /*均返回:读或写的字节数，若出错则为-1*/
 ```
-- [readn]()
-- [written]()
-- [readline]()
+- [readn](source/03-socket/readn.c)
+- [written](source/03-socket/written.c)
+- [readline](source/03-socket/readline.c)
 
 # 第四章 基本TCP套接字编程
 
@@ -633,8 +633,8 @@ void sig_chld(int signo)
 3. SIGCHLD的信号处理函数必须正确编写，应使用waitpid函数以免留下僵死进程。
 
 最终版本：
-- TCP回射服务端程序：[tcpserv]()    
-- TCP回射客户端程序：[tcpcli]()
+- TCP回射服务端程序：[tcpserv](source/05-tcp-cs/tcpserv.c)    
+- TCP回射客户端程序：[tcpcli](source/05-tcp-cs/tcpcli.c)
 
 ## 5.5 accept返回前连接中止
 
@@ -769,8 +769,8 @@ int shutdown (int sockfd,int howto) ; /*返回:若成功则为0，若出错则�
 
 ## 6.5 TCP回射服务器程序 (select)
 
-- TCP回射服务端程序：[tcpserv_select]()    
-- TCP回射客户端程序：[tcpcli_select]()
+- TCP回射服务端程序：[tcpserv_select](source/06-select-poll-epoll/select/tcpserv_select.c)    
+- TCP回射客户端程序：[tcpcli_select](source/06-select-poll-epoll/select/tcpcli_select.c)
 
 ### 拒绝服务型攻击
 
@@ -813,8 +813,8 @@ int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
 
 ## 6.7 TCP回射服务器程序 (poll)
 
-- TCP回射服务端程序：[tcpserv_poll]()    
-- TCP回射客户端程序：[tcpcli_poll]()
+- TCP回射服务端程序：[tcpserv_poll](source/06-select-poll-epoll/poll/tcpserv_poll.c)    
+- TCP回射客户端程序：[tcpcli_poll](source/06-select-poll-epoll/poll/tcpcli_poll.c)
 
 
 ## 6.8 epoll函数
@@ -948,8 +948,8 @@ epoll为什么要有EPOLLET触发模式？
 
 ## 6.9 TCP回射服务器程序(epoll)
 
-- TCP回射服务端程序：[tcpserv_epoll]()    
-- TCP回射客户端程序：[tcpcli_epoll]()
+- TCP回射服务端程序：[tcpserv_epoll](source/06-select-poll-epoll/epoll/tcpserv_epoll.c)    
+- TCP回射客户端程序：[tcpcli_epoll](source/06-select-poll-epoll/epoll/tcpcli_epoll.c)
 
 # 第七章 套接字选项
 
@@ -1033,8 +1033,8 @@ ssize_t sendto(int sockfil,const void *buff, size_t nbytes, int flags ,
 
 未连接UDP C/S 程序：
 
-- TCP回射服务端程序：[udpserv]()    
-- TCP回射客户端程序：[udpcli]()
+- TCP回射服务端程序：[udpserv](source/08-udp/disconnect/udpserv.c)    
+- TCP回射客户端程序：[udpcli](source/08-udp/disconnect/udpcli.c)
 
 ### UDP的connect函数 
 
@@ -1059,13 +1059,13 @@ UDP套接字调用connect:没有三路握手过程。内核只是检查是否存
 
 连接UDP C/S 程序：
 
-- TCP回射服务端程序：[udpserv_cnt]()    
-- TCP回射客户端程序：[udpcli_cnt]()
+- TCP回射服务端程序：[udpserv_cnt](source/08-udp/connect/udpserv_cnt.c)    
+- TCP回射客户端程序：[udpcli_cnt](source/08-udp/connect/udpcli_cnt.c)
 
 ## 8.2 UDP 回射C/S 程序 (select)
 
-- TCP回射服务端程序：[udpserv_select]()    
-- TCP回射客户端程序：[udpcli_select]()
+- TCP回射服务端程序：[udpserv_select](source/08-udp/select/udpserv_select.c)    
+- TCP回射客户端程序：[udpcli_select](source/08-udp/select/udpcli_select.c)
 
 # 第九章 线程
 
@@ -1148,8 +1148,8 @@ void pthread_exit (void *status ) ;
 
 ## 9.2 使用线程的TCP回射服务器程序
 
-- TCP回射服务端程序：[udpserv_thread]()    
-- TCP回射客户端程序：[udpcli_thread]()
+- TCP回射服务端程序：[tcpserv_thread](source/26-pthread/tcpserv_thread.c)    
+- TCP回射客户端程序：[tcpcli_thread](source/26-pthread/tcpcli_thread.c)
 
 
 
