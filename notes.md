@@ -933,9 +933,325 @@ int setnonblocking(int fd) {
     return old_option;
 }
 ```
+# 第六章 服务器程序规范
 
+## 6.1 日志
 
+![](images/65.jpg)
 
+### syslog函数
+
+应用程序使用syslog函数与rsyslogd守护进程通信。
+```c++
+#include <syslog.h>
+void syslog(int priority,const char* message, ... );
+```
+- 该函数采用可变参数（第二个参数message和第三个参数…）来结构化输出。
+- priority参数是所谓的设施值与日志级别的按位或。设施值的默认值是LOG_USER，日志级别有如下几个:
+    ```c++
+    #include <syslog.h>
+    #define LOG_ENERG   0   /*系统不可用*/
+    #define LOG_ALERT   1   /*报警,需要立即采取动作*/
+    #define LOG_CRIT    2   /*非常严重的情况**/
+    #define LOG_ERR     3   /*错误*/
+    #define LOG_WARNING 4   /*警告*/
+    #define LOG_NOTICE  5   /*通知*/
+    #define LOG_INFO    6   /*信息*/
+    #define LOG_DEBUG   7   /*调试*/
+    ```
+下面这个函数可以改变syslog的默认输出方式，进一步结构化日志内容:
+```c++
+#include <syslog.h>
+void openlog( const char* ident, int logopt, int facility );
+```  
+- ident参数指定的字符串将被添加到日志消息的日期和时间之后，它通常被设置为程序的名字
+- logopt参数对后续syslog 调用的行为进行配置，它可取下列值的按位或:
+    ```c++
+    #define LOG_PID     0x01    /*在日志消息中包含程序PID */
+    #define LOG_CONS    0x02    /*如果消息不能记录到团志文件,则打印至终端*/
+    #define LOG_ODELAY  0x04    /*延迟打开日志功能直到第一次调用syslog */
+    #define LOG_NDELAY  0x08    /*不延迟打开日志功能*/
+    ```
+- facility参数可用来修改syslog 函数中的默认设施值。
+
+下面这个函数用于设置syslog 的日志掩码;
+```c++
+#include <syslog.h>
+int setlogmask (int maskpri);
+/*返回,若成功则为日志掩码值，若出错则为-1*/
+```
+- maskpri参数指定日志掩码值。
+
+该函数始终会成功，它返回调用进程先前的日志掩码值。最后，使用如下函数关闭日志功能:
+```c++
+#include <syslog.h>
+void closelog();
+```
+## 6.2 用户信息
+
+### UID、EUID、GID和EGID
+用户信息对于服务器程序的安全性来说是很重要的，比如大部分服务器就必须以root身份启动，但不能以root身份运行。下面这一组函数可以获取和设置当前进程的真实用户ID(UID)、有效用户ID(EUID)、真实组ID(GID)和有效组ID (EGID):
+```c++
+#include <sys/types.h>
+#include <unistd.h>
+uid_t getuid();             /*获取真实用户ID */
+uid_t geteuid();            /*获取有效用户ID */
+gid_t getgid();             /*获取真实组ID */
+gid_t getegid();            /*获取有效组ID */
+int setuid(uid_t uid);      /*设置真实用户ID */
+int seteuid(uid_t uid);     /*设置有效用户ID */
+int setgid(gid_t gid);      /*设置真实组ID  */
+int setegid(gid_t gid);     /*设置有效组ID */
+```
+### 切换用户
+```c++
+static bool switch_to_user(uid_t user_id, gid_t gp_id)
+{
+  /*先确保目标用户不是root*/
+  if ((user_id == 0) && (gp_id == 0)) {
+    return false;
+  }
+
+  /*确保当前用户是合法用户: root或者目标用户*/
+  gid_t gid = getgid();
+  uid_t uid = getuid();
+  if (((gid != 0) || (uid != 0)) && ((gid != gp_id) || (uid != user_id))) {
+    return false;
+  }
+
+  /*如果不是root，则已经是目标用户*/
+  if (uid != 0) {
+    return true;
+  }
+
+  /*切换到目标用户*/
+  if ((setgid(gp_id) < 0) || (setuid(user_id) < 0)) {
+    return false;
+  }
+
+  return true;
+}
+```
+## 6.3 进程间关系
+
+### 进程组
+Linux下每个进程都隶属于一个进程组，因此它们除了PID信息外，还有进程组ID(PGID)。可以用如下函数来获取指定进程的PGID:
+```c++
+#include <unistd.h>
+pid_t getpgid (pid_t pid);
+/*返回,若成功则为进程pid所属进程组的PGID，若出错则为-1*/
+```
+
+每个进程组都有一个首领进程，其PGID和PID相同。进程组将一直存在，直到其中所有进程都退出，或者加入到其他进程组。下面的函数用于设置PGID:
+```c++
+#include <unistd.h>
+int setpgid(pid_t pid, pid_t pgid) ;
+/*返回,若成功则为0，若出错则为-1*/
+```
+该函数将PID为pid的进程的PGID设置为pgid。如果pid和 pgid相同，则由pid指定的进程将被设置为进程组首领﹔如果pid为0，则表示设置当前进程的PGID为pgid ;如果pgid为0，则使用pid作为目标PGID。
+
+一个进程只能设置自己或者其子进程的 PGID。并且，当子进程调用exec系列函数后，我们也不能再在父进程中对它设置PGID.
+
+### 会话
+
+一些有关联的进程组将形成一个会话（session)。下面的函数用于创建一个会话:
+```c++
+#include <unistd.h>
+pid_t setaid (void );
+/*返回,若成功则为新的进程组的PGID，若出错则为-1*/
+```
+该函数不能由进程组的首领进程调用，否则将产生一个错误。对于非组首领的进程，调用该函数不仅创建新会话,而且有如下额外效果:
+- 调用进程成为会话的首领，此时该进程是新会话的唯一成员。
+- 新建一个进程组，其PGID就是调用进程的PID，调用进程成为该组的首领。
+- 调用进程将甩开终端（如果有的话)。
+
+Linux进程并未提供所谓会话ID(SID）的概念，但Linux 系统认为它等于会话首领所在的进程组的PGID，并提供了如下函数来读取SID:
+```c++
+#include <unistd.h>
+pid_t getsid (pid_t pid);
+/*返回,若成功则为会话ID，若出错则为-1*/
+```
+### 系统资源限制
+Linux上运行的程序都会受到资源限制的影响，比如物理设备限制（CPU数量、内存数量等)、系统策略限制（CPU时间等)，以及具体实现的限制（比如文件名的最大长度)。Linux 系统资源限制可以通过如下一对函数来读取和设置:
+```c++
+#include <sys/resource.h>
+int getrlimit (int resource, struct rlimit *rlim);
+int setrlimit (int resource, const struct rlimit *rlim );
+/*均返回,若成功则为0，若出错则为-1*/
+```
+- rlim参数是rlimit 结构体类型的指针，rlimit结构体的定义如下:
+    ```c++
+    struct rlirmit {
+        rlim_t rlim_cur;
+        rlim_t rlim_rmax;
+    };
+    ```
+    - rlim_t是一个整数类型，它描述资源级别。
+    - rlim_cur成员指定资源的软限制
+    - rlim_max成员指定资源的硬限制。
+    > 软限制是一个建议性的、最好不要超越的限制，如果超越的话，系统可能向进程发送信号以终止其运行。
+- resource参数指定资源限制类型。下表列举了部分比较重要的资源限制类型。
+
+![](images/66.jpg)
+
+## 6.4 改变工作目录和根目录
+获取进程当前工作目录和改变进程工作目录的函数分别是:
+```c++
+#include <unistd.h>
+char* getcwd(char* buf, size_t size);
+/*返回,若成功则为非空指针，若出错则为-1*/
+int chdir ( const char* path);
+/*返回,若成功则为0，若出错则为-1*/
+```
+- buf参数指向的内存用于存储进程当前工作目录的绝对路径名，其大小由 size参数指定。
+    >如果当前工作目录的绝对路径的长度（再加上一个空结束字符“\0”)超过了size，则getcwd将返回NULL，并设置errno为ERANGE。如果buf为NULL并且 size非0，则getcwd可能在内部使用malloc动态分配内存，并将进程的当前工作目录存储在其中。如果是这种情况，则我们必须自己来释放getcwd在内部创建的这块内存。
+- chdir函数的path参数指定要切换到的目标目录。
+
+改变进程根目录的函数是chroot:
+```c++
+#include <unistd.h>
+int chroot (const char* path);
+/*返回,若成功则为0，若出错则为-1*/
+```
+- path参数指定要切换到的目标根目录。
+> chroot并不改变进程的当前工作目录，所以调用chroot之后，我们仍然需要使用chdir(“/”)来将工作目录切换至新的根目录。
+
+## 6.5 服务器程序后台化
+守护进程的编写遵循一定的步骤2，下面通过一个具体实现来探讨，如代码:
+```c++
+bool daemonize()
+{
+  /*创建子进程，关闭父进程，这样可以使程序在后台运行*/
+  pid_t pid = fork();
+  if (pid < 0) {
+    return false;
+  } else if (pid > 0) {
+    exit(0);
+  }
+
+  /*设置文件权限掩码。当进程创建新文件时，文件的权限将是mode & 0777 */
+  umask(0);
+  
+  /*创建新的会话，设置本进程为进程组的首领*/
+  pid_t sid = setsid();
+  if (sid < 0) {
+    return false;
+  }
+
+  /*切换工作目录*/
+  if ((chdir("/")) < 0) {
+    /* Log the failure */
+    return false;
+  }
+
+  /*关闭标准输入设备、标准输出设备和标准错误输出设备*/
+  close(STDIN_FILENO);
+  close(STDOUT_FILENO);
+  close(STDERR_FILENO);
+
+  /*关闭其他已经打开的文件描述符,代码省略*/
+  /*将标准输入、标准输出和标准错误输出都定向到/dev/null文件 */
+  open("/dev/null", O_RDONLY);
+  open("/dev/null", O_RDWR);
+  open("/dev/null", O_RDWR);
+  return true;
+}
+```
+# 第七章 服务器程序框架
+
+## 7.1 服务器模型
+
+### C/S模型
+C/S（客户端!服务器）模型:所有客户端都通过访问服务器来获取所需的资源。
+
+![](images/67.jpg)
+
+![](images/68.jpg)
+
+C/S模型非常适合资源相对集中的场合，并且它的实现也很简单，但其缺点也很明显﹔服务器是通信的中心，当访问量过大时，可能所有客户都将得到很慢的响应。
+
+### P2P模型
+P2P (Peer to Peer，点对点）模型比C/S模型更符合网络通信的实际情况。它摒弃了以服务器为中心的格局，让网络上所有主机重新回归对等的地位。
+
+![](images/69.jpg)
+
+P2P模型使得每台机器在消耗服务的同时也给别人提供服务，这样资源能够充分、自由地共享。云计算机群可以看作P2P模型的一个典范。但P2P模型的缺点也很明显:当用户之间传输的请求过多时，网络的负载将加重。
+
+## 7.2 服务器编程框架
+
+![](images/70.jpg)
+
+![](images/71.jpg)
+
+![](images/72.jpg)
+
+## 7.3 I/O模型
+
+![](images/73.jpg)
+
+## 7.4 两种高效的事件处理模式
+同步IO模型通常用于实现Reactor模式，异步IO模型则用于实现Proactor模式。
+
+### Reactor模式
+Reactor是这样一种模式，它要求主线程（IO处理单元，下同）只负责监听文件描述上是否有事件发生，有的话就立即将该事件通知工作线程（逻辑单元，下同)。除此之外，主线程不做任何其他实质性的工作。读写数据，接受新的连接，以及处理客户请求均在工作线程中完成。
+使用同步IO模型（以epoll_wait为例）实现的Reactor模式的工作流程是:
+1. 主线程往epoll 内核事件表中注册socket上的读就绪事件。
+2. 主线程调用epoll_wait等待socket上有数据可读。
+3. 当socket上有数据可读时，epoll_wait通知主线程。主线程则将socket可读事件放入请求队列。
+4. 睡眠在请求队列上的某个工作线程被唤醒，它从socket读取数据，并处理客户请求，然后往epoll内核事件表中注册该socket上的写就绪事件。
+5. 主线程调用epoll_wait 等待socket可写。
+6. 当socket可写时，epoll_wait通知主线程。主线程将socket可写事件放入请求队列。
+7. 睡眠在请求队列上的某个工作线程被唤醒，它往socket上写人服务器处理客户请求的结果。
+
+![](images/74.jpg)
+
+工作线程从请求队列中取出事件后，将根据事件的类型来决定如何处理它﹔
+- 对于可读事件，执行读数据和处理请求的操作﹔
+- 对于可写事件，执行写数据的操作。
+
+因此,Reactor模式中，没必要区分所谓的“读工作线程”和“写工作线程”。
+
+### Proactor模式
+Proactor模式将所有IO操作都交给主线程和内核来处理，工作线程仅仅负责业务逻辑。因此，Proactor模式更符合服务器编程框架。
+使用异步IO模型（以aio_read和 aio_write为例）实现的Proactor模式的工作流程是:
+1. 主线程调用aio_read函数向内核注册socket上的读完成事件，并告诉内核用户读缓冲区的位置，以及读操作完成时如何通知应用程序(这里以信号为例)。
+2. 主线程继续处理其他逻辑。
+3. 当socket上的数据被读入用户缓冲区后，内核将向应用程序发送一个信号，以通知应用程序数据已经可用。
+4. 应用程序预先定义好的信号处理函数选择一个工作线程来处理客户请求。工作线程处理完客户请求之后，调用aio_write函数向内核注册socket 上的写完成事件，并告诉内核用户写缓冲区的位置，以及写操作完成时如何通知应用程序（仍然以信号为例)。
+5. 主线程继续处理其他逻辑。
+6. 当用户缓冲区的数据被写人socket之后，内核将向应用程序发送一个信号，以通知应用程序数据已经发送完毕。
+7. 应用程序预先定义好的信号处理函数选择一个工作线程来做善后处理，比如决定是否关闭socket。
+
+![](images/75.jpg)
+
+连接socket上的读写事件是通过aio_read/aio_write向内核注册的，因此内核将通过信号来向应用程序报告连接socket上的读写事件。所以，主线程中的epol_wait调用仅能用来检测监听socket上的连接请求事件，而不能用来检测连接socket上的读写事件。
+
+### 模拟Proactor模式
+使用同步I/O方式模拟出Proactor模式的一种方法。其原理是:主线程执行数据读写操作，读写完成之后，主线程向工作线程通知这一“完成事件”。那么从工作线程的角度来看，它们就直接获得了数据读写的结果，接下来要做的只是对读写的结果进行逻辑处理。
+
+使用同步IO模型（仍然以epoll_wait为例）模拟出的Proactor模式的工作流程如下:
+1. 主线程往epoll内核事件表中注册socket上的读就绪事件。
+2. 主线程调用epoll_wait 等待socket 上有数据可读。
+3. 当socket上有数据可读时，epoll_wait通知主线程。主线程从socket循环读取数据，直到没有更多数据可读，然后将读取到的数据封装成一个请求对象并插人请求队列。
+4. 睡眠在请求队列上的某个工作线程被唤醒，它获得请求对象并处理客户请求，然后往epoll 内核事件表中注册socket 上的写就绪事件。
+5. 主线程调用epoll_wait等待sockct可写。
+6. 当socket可写时，epoll_wait通知主线程。主线程往 socket上写入服务器处理客户请求的结果。
+
+![](images/76.jpg)
+
+## 7.5 两种高效的并发模式
+
+并发模式是指IO处理单元和多个逻辑单元之间协调完成任务的方法。服务器主要有两种并发编程模式﹔半同步/半异步（half-syncthalf-async）模式和领导者/追随者（Lcader/Followers）模式。
+
+### 半同步/半异步模式
+
+在并发模式中，“同步”指的是程序完全按照代码序列的顺序执行﹔“异步”指的是程序的执行需要由系统事件来驱动。常见的系统事件包括中断、信号等。比如，图a描述了同步的读操作，而图b则描述了异步的读操作。
+
+![](images/77.jpg)
+
+半同步/半异步模式中，同步线程用于处理客户逻辑，相当于逻辑单元﹔异步线程用于处理IO事件，相当于I/O处理单元。异步线程监听到客户请求后，就将其封装成请求对象并插入请求队列中。请求队列将通知某个工作在同步模式的工作线程来读取并处理该请求对象。具体选择哪个工作线程来为新的客户请求服务，则取决于请求队列的设计。
+
+![](images/78.jpg)
 
 
 # 第五章 TCP C/S程序示例
