@@ -4,21 +4,69 @@
 
 ![](images/1.jpg)
 
-## 1.1 一个简单的时间获取客户程序
+- 一个简单的时间获取客户程序：[daytimetcpcli](source/01-info/daytimetcpcli.c) 
 
-代码：[daytimetcpcli](source/01-info/daytimetcpcli.c) 
+- 一个简单的时间获取服务器程序：[daytimetcpsrv](source/01-info/daytimetcpsrv.c) 
 
-## 1.2 一个简单的时间获取服务器程序
 
-代码：[daytimetcpsrv](source/01-info/daytimetcpsrv.c) 
-
-## 1.3 OSI模型
+## 1.1 OSI模型
 
 OSI模型和网际协议族中的各层
 
 ![](images/2.jpg)
 
-## 1.4 测试网络
+## 1.2 TCP/IP协议族
+
+![](images/49.jpg)
+
+- 数据链路层        
+    - 功能：实现了网卡接口的网络驱动程序，以处理数据在物理媒介(比如以太网、令牌环等)上的传输。
+    - 核心协议：
+        1. ARP协议(Address Resolve Protocol，地址解析协议)：实现IP地址到物理(MAC)地址的相互转换。
+        2. RARP协议(Reverse Address Resolve Protocol，逆地址解析协议)：实现物理(MAC)地址到IP地址的相互转换。
+- 网络层        
+    - 功能：实现数据包的选路和转发。
+    - 核心协议：
+        1. IP协议( Internet Protocol，因特网协议)：根据数据包的目的IP地址来决定如何投递它。
+        2. ICMP协议(Internet Control Message Protocol，因特网控制报文协议)：主要用于检测网络连接。
+- 传输层
+    - 功能：为两台主机上的应用程序提供端到端(end to end)的通信。
+    - 核心协议：
+        1. TCP协议(Transmission Control Protocol，传输控制协议)：为应用层提供可靠的、面向连接的和基于流(stream)的服务。
+            - 可靠性：使用超时重传、数据确认等方式来确保数据包被正确地发送至目的端
+            - 面向连接：使用TCP协议通信的双方必须先建立连接
+            - 基于流：数据没有边界(长度)限制，不断地从通信一端流入另一端
+        2. UDP协议（User Datagram Protocol，用户数据报协议)：为应用层提供不可靠、无连接和基于数据报的服务。
+            - 不可靠性：无法保证数据从发送端正确地传送到目的端。
+            - 无连接：通信双方不保持一个长久的联系
+            - 基于数据报的服务：每个UDP数据报都有一个长度，接收端必须以该长度为最小单位将其所有内容一次性读出，否则数据将被截断。
+        3. SCTP协议(Stream Control Transmission Protocol，流控制传输协议)：一种相对较新的传输层协议，它是为了在因特网上传输电话信号而设计的。
+- 应用层
+    - 功能：负责处理应用程序的逻辑。
+    - 核心协议：
+        1. ping是应用程序，而不是协议，利用ICMP报文检测网络连接，是调试网络环境的必备工具。
+        2. telnet协议是一种远程登录协议，它使我们能在本地完成远程任务。
+        3. OSPF(Open Shortest Path First，开放最短路径优先)协议是一种动态路由更新协议，用于路由器之间的通信，以告知对方各自的路由信息。
+        4. DNS(Domain Name Service，域名服务)协议提供机器域名到IP地址的转换。
+
+## 1.3 封装
+
+![](images/50.jpg)
+
+- 经过TCP封装后的数据称为TCP报文段（TCP message segment)，或者简称TCP段。
+- 经过UDP封装后的数据称为UDP数据报（UDP datagram).
+- 经过IP封装后的数据称为IP数据报（IP datagram)。
+- 经过数据链路层封装的数据称为帧（ frame)。
+
+## 1.4 分用
+
+![](images/51.jpg)
+
+- 因为IP协议、ARP协议和RARP协议都使用帧传输数据，所以帧的头部需要提供某个字段（具体情况取决于帧的类型）来区分它们。
+- 因为ICMP协议、TCP协议和UDP 协议都使用IP协议，所以IP数据报的头部采用16位的协议( protocol）字段来区分它们。
+- TCP报文段和UDP数据报则通过其头部中的16位的端口号( port number）字段来区分上层应用程序。
+
+## 1.5 测试网络
 
 - netstat -i  提供网络接口的信息。指定-n标志以输出数值地址。
 - netstat -r  展示路由表，也是另一种确定接口的方法。
@@ -34,21 +82,21 @@ OSI模型和网际协议族中的各层
 TCP/IP协议概况：
 
 - IPv4  
-网际协议版本4 (Internet Protocol version 4)。IPv4（通常称之为IP）是网际协议族的主力协议。它使用32位地址。IPv4给TCP、UDP、SCTP、ICMP和IGMP提供分组递送服务。
+网际协议版本4 (Internet Protocol version 4)。IPv4(通常称之为IP)是网际协议族的主力协议。它使用32位地址。IPv4给TCP、UDP、SCTP、ICMP和IGMP提供分组递送服务。
 - IPv6  
 网际协议版本6 (Internet Protocol version 6)。IPv6是为IPv4的一个替代品设计的。其主要变化是使用128位更大地址。IPv6给TCP、UDP、SCTP和ICMPv6提供分组递送服务。
 - TCP   
 传输控制协议(Transmission Control Protocol)。 TCP是一个面向连接的协议，为用户进程提供可靠的全双工字节流。TCP套接字是一种流套接字( streamsocket)。TCP关心确认、超时和重传之类的细节。大多数因特网应用程序使用TCP。注意TCP既可以使用IPv4，也可以使用IPv6。
 - UDP   
-用户数据报协议(User Datagram Protocol)。UDP是一个无连接协议。UDP套接字是一-种数据报套接字(datagram socket）。UDP数据报不能保证最终到达它们的目的地。与TCP一样，UDP既可以使用IPv4，也可以使用IPv6。
+用户数据报协议(User Datagram Protocol)。UDP是一个无连接协议。UDP套接字是一-种数据报套接字(datagram socket)。UDP数据报不能保证最终到达它们的目的地。与TCP一样，UDP既可以使用IPv4，也可以使用IPv6。
 - SCTP  
 流控制传榆协议(Stream Control Transmission Protocol)。SCTP是一个提供可靠全双工关联的面向连接的协议，我们使用“关联”一词来指称SCTP中的连接,因为SCTP是多宿的，从而每个关联的两端均涉及一组IP地址和一个端口号。SCTP提供消息服务，也就是维护来自应用层的记录边界。与TCP和UDP一样，SCTP既可以使用IPv4，也可以使用IPv6，而且能够在同一个关联中同时使用它们。
 - ICMP  
-网际控制消息协议（Internet Control Message Protocol)。ICMP处理在路由器和主机之间流通的错误和控制消息。这些消息通常由TCP/IP网络支持软件本身(而不是用户进程)产生和处理，不过图中展示的ping和traceroute程序同样使用ICMP。有时我们称这个协议为ICMPv4，以便与ICMPv6相区别。
+网际控制消息协议(Internet Control Message Protocol)。ICMP处理在路由器和主机之间流通的错误和控制消息。这些消息通常由TCP/IP网络支持软件本身(而不是用户进程)产生和处理，不过图中展示的ping和traceroute程序同样使用ICMP。有时我们称这个协议为ICMPv4，以便与ICMPv6相区别。
 - IGMP  
 网际组管理协议(Internet Group Management Protocol )。IGMP用于多播，它在IPv4中是可选的。
 - ARP   
-地址解析协议（Address Resolution Protocol)。ARP把一个IPv4地址映射成一个硬件地址（如以太网地址)。ARP通常用于诸如以太网、令牌环网和FDDI等广播网络，在点到点网络上并不需要。
+地址解析协议(Address Resolution Protocol)。ARP把一个IPv4地址映射成一个硬件地址(如以太网地址)。ARP通常用于诸如以太网、令牌环网和FDDI等广播网络，在点到点网络上并不需要。
 - RARP  
 反向地址解析协议(Reverse Address Resolution Protocol)。RARP把一个硬件地址映射成一个IPv4地址。它有时用于无盘节点的引导。
 - ICMPv6    
@@ -62,19 +110,23 @@ BSD分组过滤器(BSD packet filter)。该接口提供对于数据链路层的�
 
 UDP不保证UDP数据报会到达其最终目的地，不保证各个数据报的先后顺序跨网络后保持不变，也不保证每个数据报只到达一次。它缺乏可靠性，提供无连接的服务。
 
+![](images/53.jpg)
+
 ## 2.3 传输控制协议(TCP)
 
-TCP 提供了可靠性，它提供的是数据的可靠递送或故障的可靠通知。再次,TCP提供流量控制（flow control)，TCP总是告知对端在任何时刻它一次能够从对端接收多少学节的数据，这称为通告窗口(advertised window)。最后，TCP连接是全双工的(full-duplex)。这意味着在一个给定的连接上应用可以在任何时刻在进出两个方向上既发送数据又接收数据。
+TCP 提供了可靠性，它提供的是数据的可靠递送或故障的可靠通知。再次,TCP提供流量控制(flow control)，TCP总是告知对端在任何时刻它一次能够从对端接收多少学节的数据，这称为通告窗口(advertised window)。最后，TCP连接是全双工的(full-duplex)。这意味着在一个给定的连接上应用可以在任何时刻在进出两个方向上既发送数据又接收数据。
+
+![](images/52.jpg)
 
 ## 2.4 TCP连接的建立和终止
 
-### TCP连接（三次握手）
+### TCP连接(三次握手)
 
 ![](images/4.jpg)
 
-1. 服务器必须准备好接受外来的连接。通过调用socket、bind和listen这3个函数来完成，我们称之为被动打开（passive open)。
-2. 客户通过调用connect发起主动打开(active open),这导致客户TCP发送一个SYN（同步）分节，它告诉服务器客户将在（待建立的）连接中发送的数据的初始序列号。通常SYN分节不携带数据，其所在IP数据报只含有一个IP首部、一个TCP首部及可能有的TCP选项。
-3. 服务器必须确认（ACK）客户的SYN，同时自己也得发送一个SYN分节，它含有服务器将在同一连接中发送的数据的初始序列号。服务器在单个分节中发送SYN和对客户SYN的ACK(确认)。
+1. 服务器必须准备好接受外来的连接。通过调用socket、bind和listen这3个函数来完成，我们称之为被动打开(passive open)。
+2. 客户通过调用connect发起主动打开(active open),这导致客户TCP发送一个SYN(同步)分节，它告诉服务器客户将在(待建立的)连接中发送的数据的初始序列号。通常SYN分节不携带数据，其所在IP数据报只含有一个IP首部、一个TCP首部及可能有的TCP选项。
+3. 服务器必须确认(ACK)客户的SYN，同时自己也得发送一个SYN分节，它含有服务器将在同一连接中发送的数据的初始序列号。服务器在单个分节中发送SYN和对客户SYN的ACK(确认)。
 4. 客户必须确认服务器的SYN。
 
 ### TCP选项
@@ -86,20 +138,20 @@ TCP连接任何一端能够通告对端的最大窗口大小是65535，因为在
 - 时间戳选项      
 这个选项对于高速网络连接是必要的，它可以防止由失而复现的分组可能造成的数据损坏。
 
-### TCP连接终止（四次挥手）
+### TCP连接终止(四次挥手)
 
 ![](images/5.jpg)
 
-1. 某个应用进程首先调用close，我们称该端执行主动关闭（active close)。该端的TCP于是发送一个FIN分节,表示数据发送完毕。
-2. 接收到这个FIN的对端执行被动关闭( passive close),这个FIN由TCP确认。它的接收也作为一个文件结束符（end-of-file）传递给接收端应用进程（放在已排队等候该应用进程接收的任何其他数据之后)，因为FIN的接收意味着接收端应用进程在相应连接上再无额外数据可接收。
+1. 某个应用进程首先调用close，我们称该端执行主动关闭(active close)。该端的TCP于是发送一个FIN分节,表示数据发送完毕。
+2. 接收到这个FIN的对端执行被动关闭( passive close),这个FIN由TCP确认。它的接收也作为一个文件结束符(end-of-file)传递给接收端应用进程(放在已排队等候该应用进程接收的任何其他数据之后)，因为FIN的接收意味着接收端应用进程在相应连接上再无额外数据可接收。
 3. 一段时间后，接收到这个文件结束符的应用进程将调用close关闭它的套接字。这导致它的TCP也发送一个FIN。
-4. 接收这个最终FIN的原发送端TCP（即执行主动关闭的那一端)确认这个FIN。
+4. 接收这个最终FIN的原发送端TCP(即执行主动关闭的那一端)确认这个FIN。
 
 ### TCP状态转换图
 
 ![](images/6.jpg)
 
-自ESTABLISHED状态引出的两个箭头处理连接的终止。如果某个应用进程在接收到一个FIN之前调用close（主动关闭)，那就转换到FIN_WAIT_1状态。但如果某个应用进程在ESTABLISHED状态期间接收到一个FIN（被动关闭)，那就转换到CLOSE_WAIT状态。
+自ESTABLISHED状态引出的两个箭头处理连接的终止。如果某个应用进程在接收到一个FIN之前调用close(主动关闭)，那就转换到FIN_WAIT_1状态。但如果某个应用进程在ESTABLISHED状态期间接收到一个FIN(被动关闭)，那就转换到CLOSE_WAIT状态。
 
 
 ### 观察分组
@@ -129,22 +181,22 @@ TIME_WAIT状态有两个存在的理由:
 
 1. 众所周知的端口为0～1023。这些端口由IANA分配和控制。
 2. 已登记的端口(registered port)为1024~49151。这些端口不受IANA控制，不过由IANA登记并提供它们的使用情况清单，以方便整个群体。
-3. 49152~65535是动态的（dynamic）或私用的（private）端口。IANA不管这些端口。临时端口
+3. 49152~65535是动态的(dynamic)或私用的(private)端口。IANA不管这些端口。临时端口
 
 **套接字对**
 
 一个TCP连接的套接字对(socket pair)是一个定义该连接的两个端点的四元组:本地P地址、本地TCP端口号、外地IP地址、外地TCP端口号。
 
-标识每个端点的两个值（IP地址和端口号）通常称为一个套接字。
+标识每个端点的两个值(IP地址和端口号)通常称为一个套接字。
 
 ## 2.6 缓冲区大小及限制
 
 - IPv4数据报的最大大小是65535字节，包括IPv4首部。
 - IPv6数据报的最大大小是65575字节，包括40字节的IPv6首部。
-- 许多网络有一个可由硬件规定的MTU（最大传输单元）。以太网的MTU是1500字节。IPv4要求的最小链路MTU是68字节。IPv6要求的最小链路MTU为1280字节。
+- 许多网络有一个可由硬件规定的MTU(最大传输单元)。以太网的MTU是1500字节。IPv4要求的最小链路MTU是68字节。IPv6要求的最小链路MTU为1280字节。
 - 在两个主机之间的路径中最小的MTU称为路径MTU(path MTU)。1500字节的以太网MTU是当今常见的路径MTU。
 - 当一个IP数据报将从某个接口送出时，如果它的大小超过相应链路的MTU，IPv4和IPv6都将执行分片( fragmentation)。
-- IPv4首部的“不分片(don 't fragment)”位(即DF位）若被设置，那么不管是发送这些数据报的主机还是转发它们的路由器，都不允许对它们分片。
+- IPv4首部的“不分片(don 't fragment)”位(即DF位)若被设置，那么不管是发送这些数据报的主机还是转发它们的路由器，都不允许对它们分片。
 - IPv4和IPv6都定义了最小重组缓冲区大小(minimum reassembly buffer size)，它是IPv4或IPv6的任何实现都必须保证支持的最小数据报大小。其值对于TPv4为576字节，对于IPv6为1500字节。
 - TCP有一个MSS (maximum segment size，最大分节大小)，用于向对端TCP通告对端在每个分节中能发送的最大TCP数据量。
 
@@ -196,10 +248,12 @@ struct sockaddr_in {
 ```c++
 struct sockaddr {
     uint8_t     sa_len;    
-    sa_family_t sa_family;      /*address fanily : AF_xxx va1ue */
+    sa_family_t sa_family;      /*address family : AF_xxx value 地址族类型*/
     char        sa_data[14];    /*protocol-apecific address */
 };
 ```
+地址族类型通常与协议族类型对应：
+![](images/47.jpg)
 这要求对套接字函数的任何调用都必须要将指向特定于协议的套接字地址结构的指针进行类型强制转换，变成指向某个通用套接字地址结构的指针，例如:
 ```c++
 int bind(int, struct sockaddr * ,socklen_t} ;
@@ -237,13 +291,13 @@ getpeername (unixfd,(struct sockaddr *)&cli, &len) ;
 /*len may have changed */
 ```
 把套接字地址结构大小这个参数从一个整数改为指向某个整数变量的指针，其原因在于:       
-> 当函数被调用时，结构大小是一个值(value)，它告诉内核该结构的大小，这样内核在写该结构时不至于越界;当函数返回时，结构大小又是一个结果(resut)，它告诉进程内核在该结构中究竟存储了多少信息。这种类型的参数称为值-结果（value-result）参数。
+> 当函数被调用时，结构大小是一个值(value)，它告诉内核该结构的大小，这样内核在写该结构时不至于越界;当函数返回时，结构大小又是一个结果(resut)，它告诉进程内核在该结构中究竟存储了多少信息。这种类型的参数称为值-结果(value-result)参数。
 
 ## 3.3 字节排序函数
 
 考虑一个16位整数，它由2个字节组成。内存中存储这两个字节有两种方法:
-- 一种是将低序字节存储在起始地址，这称为小端(little-endian）字节序;
-- 另一种方法是将高序字节存储在起始地址,这称为大端(big-endian）字节序。
+- 一种是将低序字节存储在起始地址，这称为小端(little-endian)字节序;
+- 另一种方法是将高序字节存储在起始地址,这称为大端(big-endian)字节序。
 
 ![](images/15.jpg)
 
@@ -309,9 +363,9 @@ int inet_ptcn(int family,corst char *strpir ,void *addrptr ) ;
 const char *inet_ntop (int family，const void *addrptr,char *strptr,size_t len);
 /*返回:若成功则为指向结果的指针，若出错则为NULL*/
 ```
-> p和n分别代表表达( presentation）和数值（numeric)。
+> p和n分别代表表达( presentation)和数值(numeric)。
 - inet_ptcn 函数尝试转换由strptr指针所指的字符串，并通过addrptr指针存放二进制结果。若成功则返回值为1，否则如果对所指定的family而言输入的字符串不是有效的表达格式，那么返回值为0。
-- inet_ntop 函数进行相反的转换，从数值格式(addrptr）转换到表达格式(strptr)。len参数是目标存储单元的大小，以免该函数溢出其调用者的缓冲区。
+- inet_ntop 函数进行相反的转换，从数值格式(addrptr)转换到表达格式(strptr)。len参数是目标存储单元的大小，以免该函数溢出其调用者的缓冲区。
 
 ## 3.6 字节流套接字函数
 ```c++
@@ -326,7 +380,7 @@ ssize_t readline(int filedes,void *buff, size_t maxlen) ;
 - [written](source/03-socket/written.c)
 - [readline](source/03-socket/readline.c)
 
-# 第四章 基本TCP套接字编程
+# 第四章 套接字编程API
 
 ![](images/19.jpg)
 
@@ -358,20 +412,20 @@ TCP客户用connect函数来建立与TCP服务器的连接。
 ```c++
 #include <sys/socket.h>
 int connect (int sockfd,const struct sockaddr *servaddr,socklen_t addrlen);
-/*返回:若成功则为0，若出错则为-1*/
+/*返回:若成功则为0，若出错则为-1 并设置errno*/
 ```
 - sockfd是由socket函数返回的套接字描述符
 - servaddr和addrlen分别是一个指向套接字地址结构的指针和该结构的大小
 
 > 客户在调用函数connect前不必非得调用bind函数，因为如果需要的话，内核会确定源IP地址，并选择一个临时端口作为源端口。
 
-出错返回的几种情况：  
+出错设置errno的几种情况：  
 
 1. 若TCP客户没有收到SYN分节的响应，则返回ETIMEDOUT错误。
 2. 若对客户的SYN的响应是RST(表示复位)，则表明该服务器主机在我们指定的端口上没有进程在等待与之连接。这是一种硬错误(hard error)，客户一接收到RST就马上返回ECONNREFUSED错误。
-3. 若客户发出的SYN在中间的某个路由器上引发了一个“destination unreachable”(目的地不可达）ICMP错误，则认为是一种软错误(soft error)。
+3. 若客户发出的SYN在中间的某个路由器上引发了一个“destination unreachable”(目的地不可达)ICMP错误，则认为是一种软错误(soft error)。
 
-connect函数导致当前套接字从CLOSED状态（该套接字自从由socket函数创建以来一直所处的状态）转移到SYN_SENT状态，若成功则再转移到ESTABLISHED状态。若connect失败则该套接字不再可用，必须关闭，我们不能对这样的套按字再次调用connect函数。
+connect函数导致当前套接字从CLOSED状态(该套接字自从由socket函数创建以来一直所处的状态)转移到SYN_SENT状态，若成功则再转移到ESTABLISHED状态。若connect失败则该套接字不再可用，必须关闭，我们不能对这样的套按字再次调用connect函数。
 
 ## 4.3 bind函数
 
@@ -388,14 +442,18 @@ int bind(int sockfd,const struct sockaddr *myaddr,socklen_t addrlen);
 ![](images/21.jpg)
 
 - 如果指定端口号为0，那么内核就在bind被调用时选择一个临时端口
-- 如果指定IP地址为通配地址，那么内核将等到套接字已连接（TCP）或己在套接字上发出数据报（UDP）时才选择一个本地IP地址。
+- 如果指定IP地址为通配地址，那么内核将等到套接字已连接(TCP)或己在套接字上发出数据报(UDP)时才选择一个本地IP地址。
 > 对于IPv4来说，通配地址由常值INADDR_ANY来指定，其值一般为0.
 ```c++
 struct sockaddr_in servaddr ;
 servaddr.sin_addr.s_addr = htorl(INADDR_ANY) ;/*wildcard * /
 ```
 > - 可以调用函数getsockname来返回协议地址和端口值
-> - 从bind函数返回的一个常见错误是EADDRINUSE (地址已使用)
+> - bind成功时返回0，失败则返回-1并设置errno。其中两种常见的errno是:
+>   - EACCES，被绑定的地址是受保护的地址，仅超级用户能够访问。
+>   - EADDRINUSE，被绑定的地址正在使用中。比如将socket绑定到一个处于TIME_WAIT状态的socket地址。
+
+
 
 ## 4.4 listen函数
 当socket函数创建一个套接字时，它被假设为一个主动套接字，也就是说，它是一个将调用connect发起连接的客户套接字。listen函数把一个未连接的套接字转换成一个被动套接字，指示内核应接受指向该套接字的连接请求。调用listen导致套接字从CLOSED状态转换到LISTEN状态。
@@ -409,11 +467,14 @@ int listert int sockfd,int backlog) ;
 
 内核为任何一个给定的监听套接字维护两个队列:
 - 未完成连接队列(incomplete connection queue)
-   > 每个这样的SYN分节对应其中一项:已由某个客户发出并到达服务器，而服务器正在等待完成相应的TCP三路握手过程。这些套接字处于SYN_RCVD状态（图2-4)。
+   > 每个这样的SYN分节对应其中一项:已由某个客户发出并到达服务器，而服务器正在等待完成相应的TCP三路握手过程。这些套接字处于SYN_RCVD状态(图2-4)。
 - 已完成连接队列(completed connection queue)
    > 每个已完成TCP三路握手过程的客户对应其中一项。这些套接字处于ESTABLISHED状态
 
 ![](images/22.jpg)
+
+>自内核版本2.2之后，它只表示处于完全连接状态的socket的上限，处于半连接状态的socket的上限则由/proc/sys/nctipv4/tcp_max_syn_backlog内核参数定义。backlog 参数的典型值是5。
+
 
 ## 4.5 accept函数
 
@@ -421,28 +482,283 @@ accept函数由TCP服务器调用,用于从已完成连接队列队头返回下�
 ```c++
 #include <sys/socket.h>
 int accept (int sockfd,struct sockaddr * cliaddr,socklen_t *addrlen ) ;
-/*返回:若成功则为非负描述符，若出错则为-1*/
+/*返回:若成功则为非负描述符，若出错则为-1并设置errno*/
 ```
-- sockfd是由socket函数返回的套接字描述符（监听描述符）
-- cliaddr和addrlen用来返回已连接的对端进程（客户）的协议地址(addrlen是值-结果参数)。
+- sockfd是由socket函数返回的套接字描述符(监听描述符)
+- cliaddr和addrlen用来返回已连接的对端进程(客户)的协议地址(addrlen是值-结果参数)。
 
 如果accept成功，那么其返回值是由内核自动生成的一个全新描述符，代表与所返回客户的TCP连接(已连接套接字描述符)。
 
-## 4.6 fork和exec函数
-该函数（包括有些系统可能提供的它的各种变体）是Unix中派生新进程的唯一方法。
+accept 只是从监听队列中取出连接，而不论连接处于何种状态(如ESTABLISHED状态和CLOSE_WAIT状态)，更不关心任何网络状况的变化。
+
+
+## 4.8 close函数
+Unix close函数也用来关闭套接字，并终止TCP连接。
+```c++
+#include <unistd.h>
+int close (int sockfd ) ; /*返回:若成功则为0，若出错则为-1*/
+```
+close一个TCP套接字的默认行为是把该套接字标记成已关闭，然后立即返回到调用进程。close系统调用并非总是立即关闭一个连接，而是将fd的引用计数减1。只有当fd的引用计数为0时，才真正关闭连接。
+> 多进程程序中，一次fork系统调用默认将使父进程中打开的socket的引用计数加1，因此我们必须在父进程和子进程中都对该socket执行close 调用才能将连接关闭。
+
+## 4.9 shutdown函数
+
+终止网络连接的通常方法是调用close函数。不过close有两个限制,却可以使用shutdown来避免:
+1. close把描述符的引用计数减1，仅在该计数变为0时才关闭套接字。使用shutdown可以不管引用计数就激发TCP的正常连接终止序列。
+2. close终止读和写两个方向的数据传送。既然TCP连接是全双工的，有时候我们需要告知对端我们已经完成了数据发送，即使对端仍有数据要发送给我们。(半关闭)
+
+```c++
+#inc1ude <sys/socket.h>
+int shutdown (int sockfd,int howto) ; /*返回:若成功则为0，若出错则为-1*/
+```
+该函数的行为依赖于howto参数的值:
+
+![](images/48.jpg)
+
+## 4.10 recv和send函数
+对文件的读写操作read和 write同样适用于socket。但是socket编程接口提供了几个专门用于socket数据读写的系统调用，它们增加了对数据读写的控制。其中用于TCP流数据读写的系统调用是:
+```c++
+#include <sys/socket .h>
+ssize_t recv(int sockfd , void *buff, size_t nbytes,int flags ) ;
+ssize_t send(int sockfd ,const void *buff, size_t nbytes,int flags ) ;
+/*返回:若成功则为读入或写出的字节数，若出错则为-1*/
+```
+- buf 和 len参数分别指定读/写缓冲区的位置和大小
+- flags参数的值或为0，或为下图列出的一个或多个常值的逻辑或：
+
+![](images/55.jpg)
+
+> recv成功时返回实际读取到的数据的长度，它可能小于我们期望的长度len。因此需要多次调用recv，才能读取到完整的数据。recv可能返回0，这意味着通信对方已经关闭连接了。
+
+## 4.11 recvfrom和sendto函数
+socket编程接口中用于UDP数据报读写的系统调用是:
+```c++
+#include <sys/socket.h>
+ssize_t recvfrom (int sockfd, void *buff, size_t nbytes,int flags ,
+                  struct sockaddr *from, socklen_t *addrlen );
+ssize_t sendto(int sockfil,const void *buff, size_t nbytes, int flags ,
+               const struct sockaddr *to,socklen_t *addrlen ) ;
+/*均返回:若成功则为读或写的字节数，若出错则为-l*/
+```
+- 前三个参数sockfd、buff和nbytes等同于read和write函数的三个参数:描述符、指向读入或写出缓冲区的指针和读写字节数。
+- sendto的to参数指向一个含有数据报接收者的协议地址(例如IP地址及端口号)的套接字地址结构，其大小由addrlen参数指定。
+- recvfrom的from参数指向一个将由该函数在返回时填写数据报发送者的协议地址的套接字地址结构，而在该套接字地址结构中填写的字节数则放在addrlen参数所指的整数中返回给调用者。
+- 这两个系统调用的 fags参数以及返回值的含义均与send/recv系统调用的 flags参数及返回值相同。
+> - sendto的最后一个参数是一个整数值，而recvfrom的最后一个参数是一个指向整数值的指针(即值-结果参数)。
+> - recvfrom/sendto系统调用也可以用于面向连接（STREAM）的socket的数据读写，只需要把最后两个参数都设置为NULL以忽略发送端/接收端的socket地址
+
+## 4.12 recvmeg和sendmsg函数
+socket编程接口还提供了一对通用的数据读写系统调用。它们不仅能用于TCP流数据,也能用于UDP数据报:
+```c++
+#include <sys/socket.h>
+ssize_t recvmsg (int sockjd, struct msghdr *msg, int flags ) ;
+ssize_t sendmsg(int sockfd,struct msghdr *msg, int flags ) ;
+/*返回:若成功则为读入或写出的字节数,著出错则为-1*/
+```
+- sockfd参数指定被操作的目标socket。
+- msg 参数是msghdr结构体类型的指针，msghdr结构体的定义如下:
+    ```c++
+    struct msghdr {
+        void            *msg _name;     /*socket地址*/
+        socklen_t       msg_namelen;    /*socket地址的长度*/
+        struct iovec    *msg_iov;       /*分散的内存块*/
+        int             msg_iovlen;     /*分散内存块的数量*/
+        void            *msg_control;   /*指向辅助数据的起始位置*/
+        socklen_t       msg_controllen; /*辅助数据的大小*/
+        int             msg_flags;      /*复制函数中的flags参数，并在调用过程中更新*/
+    };
+    ```
+    - msg_name成员指向一个socket地址结构变量。它指定通信对方的 socket地址。对于面向连接的TCP协议，该成员没有意义，必须被设置为NULL。
+    - msg_namelen成员则指定了msg_name所指socket地址的长度。
+    - msg_iov成员是iovec结构体类型的指针，iovec结构体的定义如下:
+        ```c++
+        struct iovec {
+            void        *iov_base;  /*内存起始地址*/
+            size__t     iov_len;    /*这块内存的长度*/
+        };
+        ```
+        - iovec结构体封装了一块内存的起始位置和长度。
+    - msg_iovlen指定这样的iovec结构对象有多少个。
+    - recvmsg/sendmsg 的flags参数以及返回值的含义均与send/recv的 flags参数及返回值相同。
+
+对于recvmsg而言，数据将被读取并存放在msg_iovlen块分散的内存中，这些内存的位置和长度则由msg_iov指向的数组指定，这称为分散读(scatterread):对于sendmsg而言，msg_iovlen块分散内存中的数据将被一并发送，这称为集中写( gather write)。
+
+## 4.13 sockatmark函数
+
+每当收到一个带外数据时，就有一个与之关联的带外标记( out-of-band mark)。这是发送进程发送带外字节时该字节在发送端普通数据流中的位置。在从套接字读入期间，接收进程通过调用sockatmark函数确定是否处于带外标记。
+```c++
+#include <sys/socket.h>
+int sockatmark(int sockfd ) ;
+/*返回:若处于带外标记则为1，若不处于带外标记则为0，若出错则为-1*/
+```
+sockatmark判断sockfd是否处于带外标记，即下一个被读取到的数据是否是带外数据。如果是，sockatmark返回1，此时我们就可以利用带MSG_OOB标志的recv调用来接收带外数据。如果不是，则sockatmark 返回0。
+
+## 4.14 getsockname和getpeername函数
+这两个函数或者返回与某个套接字关联的本地协议地址(getsockname)，或者返回与某个套接字关联的远端协议地址( getpeername)。
+```c++
+#include <sys/socket.h>
+int getsocknane (int sockfd,struct sockaddr *localaddr,socklen_t *addrlen ) ;
+int getpeername(int sockfd,struct sockaddr *peeraddr,socklen_t *addrlen) ;
+/*均返回:若成功则为0。若出错则为-1*/
+```
+需要这两个函数的理由如下所述；
+- 在一个没有调用bind的TCP客户上，connect成功返回后，getsockname用于返回由内核赋予该连接的本地P地址和本地端口号。
+- 在以端口号0调用bind(告知内核去选择本地端口号)后，getsockname用于返回由内核赋予的本地端口号。
+- getsockname可用于获取某个套接字的地址族
+- 在一个以通配IP地址调用bind的TCP服务器上，与某个客户的连接一旦建立(accept成功返回)，getsockname就可以用于返回由内核赋予该连接的本地IP地址      在这样的调用中，套接字描述符参数必须是已连接套接字的描述符，而不是监听套接字的描述符。
+- 当一个服务器是由调用过accept的某个进程通过调用exec执行程序时，它能够获取客户身份的唯一途径便是调用getpeername.
+
+获取套接字的地址族：
+```c++
+int sockfd_to_family(int sockfd)
+{
+	struct sockaddr_storage ss;
+	socklen_t	len;
+
+	len = sizeof(ss);
+	if (getsockname(sockfd, (SA *) &ss, &len) < 0)
+		return(-1);
+	return(ss.ss_family);
+}
+```
+## 4.15 getsockopt和setsockopt函数
+这两个函数仅用于套接字。
+- setsockopt从*optvat中取得选项待设置的新值；
+- getsockopt则把已获取的选项当前值存放到*optval中；
+```c++
+#include <sys/socket.h>
+int getsockopt(int sockfd, int level,int optname,void *optval,socklen_t *optlen);
+int setsockopt (int sockfd, int level,int optname,const void *optval,socklen_t optlen);
+/*均返回:若成功则为0。若出错则为-1*/
+```
+- sockfd必须指向一个打开的套接字描述符
+- level(级别)指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码(例如IPv4、IPv6、TCP或SCTP)。
+- optval是一个指向某个变量(*optval)的指针
+
+![](images/56.jpg)
+
+## 4.16 gethostbyname和gethostbyaddr函数
+gethostbyname函数根据主机名称获取主机的完整信息，gethostbyaddr 函数根据IP地址获取主机的完整信息。gethostbyname函数通常先在本地的letc/hosts 配置文件中查找主机，如果没有找到，再去访问 DNS服务器。
+```c++
+#include <netdb.h>
+struct hostent* gethostbyname ( const char* name );
+struct hostent* gethosthyaddr ( const void* addr, size_t len, int type);
+/*返回:若成功则为非空指针，若出错则为NULL且设置h_errno*/
+```
+- name参数指定目标主机的主机名
+- addr参数指定目标主机的IP地址
+- len参数指定addr所指IP地址的长度，
+- type参数指定addr所指IP地址的类型，其合法取值包括AF_INET(用于IPv4地址）和AF_INET6（用于IPv6地址)。
+
+这两个函数返回的都是hostent结构体类型的指针，hostent结构体的定义如下:
+```c++
+#include <netdb.h>
+struct hostent {
+    char*   h_name;     /*主机名*/
+    char* * h_aliases;  /*主机别名列表。可能有多个*/
+    int     h_addrtype; /*地址类型(地址族)*/
+    int     h_length;   /*地址长度*/
+    char*   h_addr_list /*按网烙字节序列出的主机工Р地址列表*/
+};
+```
+## 4.17 getservbyname和getservbyport函数
+getservbyname函数根据名称获取某个服务的完整信息，getservbyport 函数根据端口号获取某个服务的完整信息。它们实际上都是通过读取letc/services文件来获取服务的信息的。
+```c++
+#include <netdb.h>
+struct servent* getservbyname ( const char* name,const char* proto );
+struct servent* getservbyport ( int port, const char* proto );
+/*返回:若成功则为非空指针，若出错则为NULL*/
+```
+- name参数指定目标服务的名字
+- port参数指定目标服务对应的端口号。
+- proto参数指定服务类型，给它传递“tcp”表示获取流服务，给它传递“udp”表示获取数据报服务，给它传递NULL则表示获取所有类型的服务。
+
+这两个函数返回的都是servent结构体类型的指针，结构体servent的定义如下:
+```c++
+#include <netdb.h>
+struct servent  {
+    char*   s_name;     /*服务名称*/
+    char**  s _aliases; /*服务的别名列表，可能有多个*/
+    int     s_port;     /*端口号*/
+    char*   s_proto;    /*服务类型,通常是tcp或着udp */
+};
+```
+## 4.18 getaddrinfo 函数
+getaddrinfo函数既能通过主机名获得IP地址（内部使用的是gethostbyname函数)，也能通过服务名获得端口号（内部使用的是getservbyname函数)。它是否可重入取决于其内部调用的 gethostbyname和getservbyname函数是否是它们的可重入版本。
+```c++
+#include <netdb.h>
+int getaddrinfo (const char *hostname,conet char *service,const struct addrinfo* hints,struct addrinfo** result) ;
+/*返回:若成功则为0。若出错则为非0*/
+```
+- hostname参数可以接收主机名，也可以接收字符串表示的IP地址（IPv4采用点分十进制字符串，IPv6则采用十六进制字符串)。
+- service参数可以接收服务名，也可以接收字符串表示的十进制端口号。
+- hints参数是应用程序给getaddrinfo的一个提示，以对getaddrinfo的输出进行更精确的控制。hints参数可以被设置为NULL，表示允许getaddrinfo反馈任何可用的结果。
+- result参数指向一个链表，该链表用于存储getaddrinfo反馈的结果。
+
+getaddrinfo反馈的每一条结果都是addrinfo结构体类型的对象，结构体addrinfo的定义如下:
+```c++
+struct addrinfo {
+    int ai_flags;               /*见后文*/
+    int ai_family;              /*地址族*/
+    int ai_socktype;            /*服务类型，SOCK_STREAM或SOCK_DGRAM*/
+    int ai_protocol;            /*具体的网络协议*/
+    socklen_t   ai_addrlen;     /*socket地址ai_addr的长度*/
+    char*       ai_canonname;   /*主机的别名*/
+    struct sockaddr* ai_addr;   /*指向socket地址*/
+    struct addrinfo* ai_next;   /*指向下一个sockinfo结构的对象*/
+};
+```
+该结构体中，ai_protocol成员是指具体的网络协议，其含义和socket系统调用的第三个参数相同，它通常被设置为0。ai_flags成员可以取下表中的标志的按位或。
+
+![](images/57.jpg)
+
+使用getaddrinfo函数
+```c++
+struct addrinfo hints;
+struct addrinfo *res;
+
+bzero(&hints, sizeof ( hints )) ;
+hints.ai_socktype = SOCK_STREAM ;
+getaddrinfo( "ernest-laptop", "daytime",&hints,&res);
+```
+getaddrinfo将隐式地分配堆内存，因为res 指针原本是没有指向一块合法内存的，所以，getaddrinfo调用结束后，我们必须使用如下配对函数来释放这块内存:
+```c++
+#include <netdb.h>
+void freeaddrinfo ( struct addrinfo *res ) ;
+```
+## 4.19 getnameinfo函数
+getnameinfo函数能通过socket地址同时获得以字符串表示的主机名（内部使用的是gethostbyaddr函数）和服务名（内部使用的是getservbyport函数)。它是否可重人取决于其内部调用的gethostbyaddr 和 getservbyport函数是否是它们的可重入版本。
+```c++
+#include <netdb.h>
+int getnameinfo (const struct socKaddr *sockaddr,socklen_t addrlen,char *host,socklen_t hostlen,char *serv , socklen_t servlen, int flags ) ;
+/*返回:若成功则为0，若出错则为非0*/
+```
+- getnameinfo将返回的主机名存储在host参数指向的缓存中
+- 将服务名存储在serv参数指向的缓存中
+- hostlen和 servlen参数分别指定这两块缓存的长度。
+- flags参数控制getnameinfo的行为，它可以接收下表中的选项。
+
+![](images/58.jpg)
+
+getaddrinfo和getnameinfo函数成功时返回0，失败则返回错误码，可能的错误码如表：
+
+![](images/59.jpg)
+
+## 4.20 fork和exec函数
+该函数(包括有些系统可能提供的它的各种变体)是Unix中派生新进程的唯一方法。
 ```c++
 #include <unistd.h>
 pid_t fork (void) :
 /*返回:在子进程中为0，在父进程中为子进程ID,若出错则为-1*/
 ```
-- 在调用进程（称为父进程）中返回一次，返回值是新派生进程（称为子进程）的进程ID号;
+- 在调用进程(称为父进程)中返回一次，返回值是新派生进程(称为子进程)的进程ID号;
 - 在子进程又返回一次，返回值为0。
 
 父进程中调用fork之前打开的所有描述符在fork返回之后由子进程分享。通常情况下，子进程接着读写这个己连接套接字，父进程则关闭这个已连接套接字。
 
 fork有两个典型用法：    
 1. 一个进程创建一个自身的副本,这样每个副本都可以在另一个副本执行其他任务的同时处理各自的某个操作。这是网络服务器的典型用法。
-2. 一个进程想要执行另一个程序。既然创建新进程的唯一办法是调用fork，该进程于是首先调用fork创建一个自身的副本，然后其中一个副本（通常为子进程）调用exec把自身替换成新的程序。这是诸如shell之类程序的典型用法。
+2. 一个进程想要执行另一个程序。既然创建新进程的唯一办法是调用fork，该进程于是首先调用fork创建一个自身的副本，然后其中一个副本(通常为子进程)调用exec把自身替换成新的程序。这是诸如shell之类程序的典型用法。
 
 存放在硬盘上的可执行程序文件能够被Unix执行的唯一方法是:由一个现有进程调用六个exec函数中的某一个。
 ```c++
@@ -456,7 +772,7 @@ int execvp (const char *filenrame, char *const argv[]);
 ```
 ![](images/23.jpg)
 
-## 4.7 并发服务器
+## 4.21 并发服务器
 
 典型的并发服务器程序轮廓：
 ```c++
@@ -477,43 +793,151 @@ for ( ; ; ) {
     close (connfd) ;        /*parent closes connected socket*/
 }
 ```
-## 4.8 close函数
-Unix close函数也用来关闭套接字，并终止TCP连接。
+# 第五章 高级I/O函数
+
+## 5.1 pipe函数
+pipe 函数可用于创建一个管道，以实现进程间通信。
 ```c++
 #include <unistd.h>
-int close (int sockfd ) ; /*返回:若成功则为0，若出错则为-1*/
+int pipe ( int fd[2] );
+/*返回:若成功则为0，若出错则为-1并设置errno*/
 ```
-close一个TCP套接字的默认行为是把该套接字标记成已关闭，然后立即返回到调用进程。
+- pipe函数的参数是一个包含两个int型整数的数组指针。该函数成功时返回0，并将一对打开的文件描述符值填入其参数指向的数组。如果失败，则返回-1并设置errno。
 
-## 4.9 getsockname和 getpeername函数
-这两个函数或者返回与某个套接字关联的本地协议地址(getsockname)，或者返回与某个套接字关联的外地协议地址( getpeername)。
+通过pipe函数创建的这两个文件描述符fd[0]和fd[1]分别构成管道的两端，往fd[1]写人的数据可以从fd[0]读出。并且，fd[0]只能用于从管道读出数据，fd[1]则只能用于往管道写入数据，而不能反过来使用。如果要实现双向的数据传输，就应该使用两个管道。
+
+此外，socket的基础API中有一个socketpair 函数。它能够方便地创建双向管道。其定义如下:
 ```c++
-#include <sys/socket.h>
-int getsocknane (int sockfd,struct sockaddr *localaddr,socklen_t *addrlen ) ;
-int getpeername(int sockfd,struct sockaddr *peeraddr,socklen_t *addrlen) ;
-/*均返回:若成功则为0。若出错则为-1*/
+#inc1ude<sys/socket.h>
+int socketpair(int domain, int type, int protocol, int fd[2]);
+/*返回:若成功则为0，若出错则为-1并设置errno*/
 ```
-需要这两个函数的理由如下所述；
-- 在一个没有调用bind的TCP客户上，connect成功返回后，getsockname用于返回由内核赋予该连接的本地P地址和本地端口号。
-- 在以端口号0调用bind（告知内核去选择本地端口号）后，getsockname用于返回由内核赋予的本地端口号。
-- getsockname可用于获取某个套接字的地址族
-- 在一个以通配IP地址调用bind的TCP服务器上，与某个客户的连接一旦建立(accept成功返回)，getsockname就可以用于返回由内核赋予该连接的本地IP地址      在这样的调用中，套接字描述符参数必须是已连接套接字的描述符，而不是监听套接字的描述符。
-- 当一个服务器是由调用过accept的某个进程通过调用exec执行程序时，它能够获取客户身份的唯一途径便是调用getpeername.
+- 前三个参数的含义与socket系统调用的三个参数完全相同，但domain只能使用UNIX本地域协议族AF_UNIX，因为我们仅能在本地使用这个双向管道。
+- 最后一个参数则和pipe系统调用的参数一样，只不过socketpair创建的这对文件描述符都是既可读又可写
 
-获取套接字的地址族：
+## 5.2 dup和dup2函数
+有时我们希望把标准输入重定向到一个文件，或者把标准输出重定向到一个网络连接。这可以通过下面的用于复制文件描述符的dup或dup2函数来实现:
 ```c++
-int
-sockfd_to_family(int sockfd)
-{
-	struct sockaddr_storage ss;
-	socklen_t	len;
+#include <unistd.h>
+int dup (int file_descriptor );
+int dup2 (int file_descriptor_one, int file_descriptor_two );
+/*返回:若成功则为文件描述符，若出错则为-1并设置errno*/
+```
+- dup函数创建一个新的文件描述符，该新文件描述符和原有文件描述符file_descriptor指向相同的文件、管道或者网络连接。
+- 并且dup返回的文件描述符总是取系统当前可用的最小整数值。dup2和dup类似，不过它将返回第一个不小于file_descriptor_two的整数值。
 
-	len = sizeof(ss);
-	if (getsockname(sockfd, (SA *) &ss, &len) < 0)
-		return(-1);
-	return(ss.ss_family);
+> 通过dup和dup2创建的文件描述符并不继承原文件描述符的属性，比如close-on-exec和non-blocking 等。
+
+## 5.3 readv和writev函数
+readv函数将数据从文件描述符读到分散的内存块中，即分散读; writev函数则将多块分散的内存数据一并写入文件描述符中，即集中写。
+```c++
+#include<sys/uio.h>
+ssize_t readv  (int fd,const struct iovec* vector,int count);
+ssize_t writev (int fd,const struct iovec* vector,int count);
+/*均返回:若成功则为读或写的字节数，若出错则为-1*/
+```
+- fd参数是被操作的目标文件描述符。
+- vector 参数的类型是iovec结构数组。该结构体描述一块内存区。
+- count参数是vector 数组的长度，即有多少块内存数据需要从f读出或写到fd。
+
+readv和 writev在成功时返回读出或写入fd的字节数，失败则返回-1并设置errno。它们相当于简化版的recvmsg 和 sendmsg函数。
+
+## 5.4 sendfile函数
+sendfile函数在两个文件描述符之间直接传递数据(完全在内核中操作)，从而避免了内核缓冲区和用户缓冲区之间的数据拷贝，效率很高，这被称为零拷贝。
+```c++
+#include <sys/sendfile.h>
+ssize_t sendfile (int out_fd,int in_fd,off_t* offset,size_t count );
+/*返回:若成功则为传输的字节数，若出错则为-1*/
+```
+- in_fd参数是待读出内容的文件描述符
+- out_fd参数是待写入内容的文件描述符
+- offset参数指定从读入文件流的哪个位置开始读，如果为空，则使用读人文件流默认的起始位置
+- count参数指定在文件描述符in_fd和 out_fd之间传输的字节数。
+
+in_fd必须是一个支持类似mmap函数的文件描述符，即它必须指向真实的文件，不能是socket和管道﹔而out_fd则必须是一个socket。
+
+## 5.5 mmap和munmap函数
+mmap函数用于申请一段内存空间。可以将这段内存作为进程间通信的共享内存，也可以将文件直接映射到其中。munmap 函数则释放由mmap创建的这段内存空间。
+```c++
+#include <sys/mman.h>
+void* mmap (void *start, size_t length, int prot, int flags, int fd, off_t offset );
+/*返回:若成功则为非空指针，若出错则为MAP_FAILED((void*)-1)*/
+int munmap (void *start,size_t length );
+/*返回:若成功则为0，若出错则为-1*/
+```
+- start参数允许用户使用某个特定的地址作为这段内存的起始地址。如果它被设置成NULL，则系统自动分配一个地址
+- length参数指定内存段的长度
+- prot参数用来设置内存段的访问权限。它可以取以下几个值的按位或:
+    - PROT_READ，内存段可读。
+    - PROT_WRITE，内存段可写。
+    - PROT_EXEC，内存段可执行。
+    - PROT_NONE，内存段不能被访问。
+- flags参数控制内存段内容被修改后程序的行为。它可以被设置为下表中的某些值的按位或(其中 MAP_SHARED和 MAP_PRIVATE是互斥的，不能同时指定)。
+
+![](images/60.jpg)
+
+- fd参数是被映射文件对应的文件描述符。它一般通过open系统调用获得。
+- offset参数设置从文件的何处开始映射（对于不需要读入整个文件的情况)。
+
+mmap函数成功时返回指向目标内存区域的指针，失败则返回MAP_FAILED((void*)-1)并设置errno. munmap函数成功时返回0，失败则返回-1并设置errno。
+
+## 5.6 splice函数
+splice函数用于在两个文件描述符之间移动数据，也是零拷贝操作。
+```c++
+#include <fcntl.h>
+ssize_t splice (int fd_in, loff_t off_in, int fd_out, loff_t* off_out,size_t len, unsigned int flags);
+/*返回:若成功则为移动字节的数量，若出错则为-1*/
+```
+- fd_in参数是待输入数据的文件描述符。如果fd_in是一个管道文件描述符，那么off_in参数必须被设置为NULL。如果fd_in不是一个管道文件描述符（比如 socket)，那么off_in表示从输入数据流的何处开始读取数据。此时，若off_in被设置为NULL，则表示从输入数据流的当前偏移位置读入﹔若off_in不为NULL，则它将指出具体的偏移位置。
+- fd_out/off_out参数的含义与fd_in/off_in相同，不过用于输出数据流。
+- len参数指定移动数据的长度﹔
+- flags参数则控制数据如何移动，它可以被设置为下表中的某些值的按位或。
+
+![](images/61.jpg)
+
+fd_in和 fd_out必须至少有一个是管道文件描述符。splice 函数调用成功时返回移动字节的数量。它可能返回0，表示没有数据需要移动，这发生在从管道中读取数据(fd_in是管道文件描述符）而该管道没有被写入任何数据时。splice函数失败时返回-1并设置errno。常见的errno如下表所示。
+
+![](images/62.jpg)
+
+## 5.7 tee函数
+tee函数在两个管道文件描述符之间复制数据，也是零拷贝操作。它不消耗数据，因此源文件描述符上的数据仍然可以用于后续的读操作。
+```c++
+#include <fcntl.h>
+ssize_t tee ( int fd_in, int fd_out, size_t len,unsigned int flags );
+/*返回:若成功则为复制字节的数量，若出错则为-1*/
+```
+该函数的参数的含义与splice相同（但fd_in和fd_out必须都是管道文件描述符)。tee函数成功时返回在两个文件描述符之间复制的数据数量（字节数)。返回0表示没有复制任何数据。tee失败时返回-1并设置errno.
+
+## 5.8 fcntl函数
+提供了对文件描述符的各种控制操作。另外一个常见的控制文件描述符属性和行为的系统调用是ioctl，而且 ioctl 比 fcntl能够执行更多的控制。但是，对于控制文件描述符常用的属性和行为，fcntl函数是由POSIX规范指定的首选方法。
+```c++
+#include <fcntl.h>
+int fcntl(int fd，int cmd,... /* int arg */ );
+/*返回,若成功则取决于cmd，若出错则为-1*/
+```
+- fd参数是被操作的文件描述符
+- cmd参数指定执行何种类型的操作。
+
+根据操作类型的不同，该函数可能还需要第三个可选参数arg。fcntl函数支持的常用操作及其参数如下表所示。
+
+![](images/63.jpg)
+
+![](images/64.jpg)
+
+将文件描述符设置为非阻塞的：
+```c++
+int setnonblocking(int fd) {
+    int old_option = fcntl (fd,F_GETFL);      
+    int new_option = old_option | O_NONBLOCK; 
+    fcntl(fd, F_SETFL,new_option );
+    return old_option;
 }
 ```
+
+
+
+
+
 # 第五章 TCP C/S程序示例
 
 **简单的回射客户/服务器**
@@ -522,14 +946,14 @@ sockfd_to_family(int sockfd)
 
 ## 5.1 POSIX信号处理
 
-信号（signal）就是告知某个进程发生了某个事件的通知，有时也称为软件中断。信号通常是异步发生的，也就是说进程预先不知道信号的准确发生时刻。信号可以:
-- 由一个进程发给另一个进程（或自身);
+信号(signal)就是告知某个进程发生了某个事件的通知，有时也称为软件中断。信号通常是异步发生的，也就是说进程预先不知道信号的准确发生时刻。信号可以:
+- 由一个进程发给另一个进程(或自身);
 - 由内核发给某个进程。
 
 调用sigaction函数来设定一个信号的处置，并有三种选择：
 1. 提供一个函数，只要有特定信号发生它就被调用。这样的函数称为信号处理函数(signal handler),这种行为称为捕获(catching)信号。有两个信号不能被捕获，它们是SIGKILL和STGSTOP。
-2. 把某个信号的处置设定为SIG_IGN来忽略（ignore）它。SIGKIL,t和SIGSTOP这两个信号不能被忽略。
-3. 把某个信号的处置设定为SIG_DFL来启用它的默认(default）处置。SICCHLD和STGURG(带外数据到达时发送）默认处置为忽略。
+2. 把某个信号的处置设定为SIG_IGN来忽略(ignore)它。SIGKIL,t和SIGSTOP这两个信号不能被忽略。
+3. 把某个信号的处置设定为SIG_DFL来启用它的默认(default)处置。SICCHLD和STGURG(带外数据到达时发送)默认处置为忽略。
 
 signal函数：
 ```c++
@@ -565,7 +989,7 @@ Sigfunc* signal(int signo, Sigfunc *func)
 ```
 ## 5.2 处理SIGCHLD信号
 
-设置僵死（zombie）状态的目的是维护子进程的信息，以便父进程在以后某个时候获取。这些信息包括子进程的进程ID、终止状态以及资源利用信息(CPU时间、内存使用量等等)。
+设置僵死(zombie)状态的目的是维护子进程的信息，以便父进程在以后某个时候获取。这些信息包括子进程的进程ID、终止状态以及资源利用信息(CPU时间、内存使用量等等)。
 
 如果一个进程终止，而该进程有子进程处于僵死状态，那么它的所有僵死子进程的父进程ID将被重置为1(init进程)。继承这些子进程的init进程将清理它们也就是说init进程将wait它们，从而去除它们的僵死状态)。
 
@@ -599,7 +1023,7 @@ for (;;) {
 }
 ```
 ## 5.3 wait和waitpid函数
-用来清理已终止子进程（僵尸进程）
+用来清理已终止子进程(僵尸进程)
 ```c++
 #include <sys/wait.h>
 pid_t wait(int *statloc) ;
@@ -662,20 +1086,20 @@ ESTABLISHED状态的连接在调用accept之前收到RST(复位)
 
 ## 5.9 服务器主机崩溃后重启
 
-如果对客户而言检测服务器主机崩溃与否很重要，即使客户不主动发送数据也要能检测出来，就需要采用其他某种技术（诸如SO_KEEPALIVE套接字选项或某些客户/服务器心搏函数),
+如果对客户而言检测服务器主机崩溃与否很重要，即使客户不主动发送数据也要能检测出来，就需要采用其他某种技术(诸如SO_KEEPALIVE套接字选项或某些客户/服务器心搏函数),
 
 ## 5.10 服务器主机关机
 
-Unix系统关机时，init进程通常先给所有进程发送SIGTERM信号(该信号可被捕获)，等待一段固定的时间，然后给所有仍在运行的进程发送SIGKILL信号（该信号不能被捕获)。
+Unix系统关机时，init进程通常先给所有进程发送SIGTERM信号(该信号可被捕获)，等待一段固定的时间，然后给所有仍在运行的进程发送SIGKILL信号(该信号不能被捕获)。
 
 如果不捕获SIGTERM信号并终止，服务器将由SIGKILL信号终止。当服务器子进程终止时，它的所有打开着的描述符都被关闭，随后发生的步骤与服务器进程终止一样。正如那一节所述，必须在客户中使用select或poll函数，使得服务器进程的终止一经发生，客户就能检测到。
 
 # 第六章 I/O复用：select和poll函数
 
-内核一旦发现进程指定的一个或多个IO条件就绪（也就是说输入已准备好被读取，或者描述符已能承接更多的输出)，它就通知进程。这个能力称为IO复用（IO multiplexing)，是由select和pol1这两个函数支持的。
+内核一旦发现进程指定的一个或多个IO条件就绪(也就是说输入已准备好被读取，或者描述符已能承接更多的输出)，它就通知进程。这个能力称为IO复用(IO multiplexing)，是由select和pol1这两个函数支持的。
 
 IO复用典型使用在下列网络应用场合：
-- 当客户处理多个描述符（通常是交互式输入和网络套接字）时，必须使用IO复用。
+- 当客户处理多个描述符(通常是交互式输入和网络套接字)时，必须使用IO复用。
 - 一个客户同时处理多个套接字是可能的。
 - 如果一个TCP服务器既要处理监听套接字，又要处理已连接套接字，一般就要使用IO复用。
 - 如果一个服务器即要处理TCP，又要处理UDP。
@@ -723,7 +1147,7 @@ int select(int maxfdpl ,fd_set *readset,fd_set *writeset,fd_set *exceptset,
            const struct timeval *timeout);
 /*返回:若有就绪描述符则为其数目，若超时则为0，若出错则为-1*/
 ```
-- maxfdpl参数指定待测试的描述符个数，它的值是待测试的最大描述符加1（描述符是从0开始的）
+- maxfdpl参数指定待测试的描述符个数，它的值是待测试的最大描述符加1(描述符是从0开始的)
 - readset、writeset、exceptset 指定要让内核测试读、写和异常条件的描述符。目前支持的异常条件只有两个：
     1. 某个套接字的带外数据的到达;
     2. 某个己置为分组模式的伪终端存在可从其主端读取的控制状态信息。
@@ -737,7 +1161,7 @@ int select(int maxfdpl ,fd_set *readset,fd_set *writeset,fd_set *exceptset,
     这个参数有以下三种可能：
     1. 永远等待下去：仅在有一个描述符准备好IO时才返回。为此，我们把该参数设置为空指针。
     2. 等待一段固定时间：在有一个描述符准备好IO时返回，但是不超过由该参数所指向的timeval结构中指定的秒数和微秒数。
-    3. 根本不等待：检查描述符后立即返回，这称为轮询(polling)。为此，该参数必须指向一个timeval结构，而且其中的定时器值（由该结构指定的秒数和微秒数）必须为0。
+    3. 根本不等待：检查描述符后立即返回，这称为轮询(polling)。为此，该参数必须指向一个timeval结构，而且其中的定时器值(由该结构指定的秒数和微秒数)必须为0。
 
 select使用描述符集指定一个或多个描述符值，通常是一个整数数组，其中每个整数中的每一位对应一个描述符。
 ```c++
@@ -752,36 +1176,21 @@ int FD_ISSET (int fd,fd_act *fdset ) ;  /* is the bit for fd on in fdset ? * /
 
 ![](images/32.jpg)
 
-## 6.4 shutdown函数
-
-终止网络连接的通常方法是调用close函数。不过close有两个限制,却可以使用shutdown来避免:
-1. close把描述符的引用计数减1，仅在该计数变为0时才关闭套接字。使用shutdown可以不管引用计数就激发TCP的正常连接终止序列。
-2. close终止读和写两个方向的数据传送。既然TCP连接是全双工的，有时候我们需要告知对端我们已经完成了数据发送，即使对端仍有数据要发送给我们。(半关闭)
-
-```c++
-#inc1ude <sys/socket.h>
-int shutdown (int sockfd,int howto) ; /*返回:若成功则为0，若出错则为-1*/
-```
-该函数的行为依赖于howto参数的值；
-- SHUT_RD   关闭连接的读这一半——套接字中不再有数据可接收,而且套接字接收缓冲区中的现有数据都被丢弃。
-- SHUT_WR   关闭连接的写这一半——对于TCP套接字，这称为半关闭。当前留在套接字发送缓冲区中的数据将被发送掉，后跟TCP的正常连接终止序列。
-- SHUT_RDWR 连接的读半部和写半部都关闭——这与调用shutdown两次等效:第一次调用指定SHLT_RD，第二次调用指定SHUT_WR。
-
-## 6.5 TCP回射服务器程序 (select)
+## 6.4 TCP回射服务器程序 (select)
 
 - TCP回射服务端程序：[tcpserv_select](source/06-select-poll-epoll/select/tcpserv_select.c)    
 - TCP回射客户端程序：[tcpcli_select](source/06-select-poll-epoll/select/tcpcli_select.c)
 
 ### 拒绝服务型攻击
 
-当一个服务器在处理多个客户时，它绝对不能阻塞于只与单个客户相关的某个函数调用。否则可能导致服务器被挂起，拒绝为所有其他客户提供服务。这就是所谓的拒绝服务(denial of service）型攻击。
+当一个服务器在处理多个客户时，它绝对不能阻塞于只与单个客户相关的某个函数调用。否则可能导致服务器被挂起，拒绝为所有其他客户提供服务。这就是所谓的拒绝服务(denial of service)型攻击。
 
 可能的解决办法包括:
 1. 使用非阻塞式IO
-2. 让每个客户由单独的控制线程提供服务（例如创建一个子进程或一个线程来服务每个客户);
+2. 让每个客户由单独的控制线程提供服务(例如创建一个子进程或一个线程来服务每个客户);
 3. 对I/O操作设置一个超时。
 
-## 6.6 poll函数
+## 6.5 poll函数
 
 poll提供的功能与select类似，不过在处理流设备时，它能够提供额外的信息。
 ```c++
@@ -801,7 +1210,7 @@ int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
 
     ![](images/33.jpg)
 
-    poll识别三类数据:普通(normal)、优先级带(priority band）和高优先级(high priority)
+    poll识别三类数据:普通(normal)、优先级带(priority band)和高优先级(high priority)
 
 - timeout参数 指定poll函数返回前等待多长时间。它是一个指定应等待毫秒数的正值。
 
@@ -811,13 +1220,13 @@ int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
 
 当发生错误时，poll函数的返回值为-1，若定时器到时之前没有任何描述符就绪，则返回0，否则返回就绪描述符的个数，即revents成员值非0的描述符个数。
 
-## 6.7 TCP回射服务器程序 (poll)
+## 6.6 TCP回射服务器程序 (poll)
 
 - TCP回射服务端程序：[tcpserv_poll](source/06-select-poll-epoll/poll/tcpserv_poll.c)    
 - TCP回射客户端程序：[tcpcli_poll](source/06-select-poll-epoll/poll/tcpcli_poll.c)
 
 
-## 6.8 epoll函数
+## 6.7 epoll函数
 
 select的套接字等待集合为fd_set，poll的套接字等待集合为pollfd结构体。但是由于select和poll的套接字等待集合的容量太小，一般是1024，使得进程不能同时处理大规模I/O请求，因此引入epoll。
 
@@ -922,10 +1331,10 @@ epoll为什么要有EPOLLET触发模式？
     ```
     - filedes : 属性更改目标的文件描述符
     - cmd : 表示函数调用目的
-        - F_GETFL:获得第一个参数所指的文件描述符属性（int 型）
+        - F_GETFL:获得第一个参数所指的文件描述符属性(int 型)
         - F_SETFL:更改文件描述符属性
 
-    将文件（套接字）改为非阻塞模式，需要如下  2 条语句:
+    将文件(套接字)改为非阻塞模式，需要如下  2 条语句:
     ```c++
     int flag = fcntl(fd,F_GETFL,0);
     fcntl(fd,F_SETFL,flag|O_NONBLOCK)
@@ -943,77 +1352,20 @@ epoll为什么要有EPOLLET触发模式？
 - 当缓冲区有空间可写，且应用进程对相应的描述符进行EPOLL_CTL_MOD 修改EPOLLOUT事件时。
 -----
 **总结：**
-- ET模式（边缘触发）：只有数据到来才触发，不管缓存区中是否还有数据，缓冲区剩余未读尽的数据不会导致epoll_wait返回；
-- LT 模式（水平触发，默认）：只要有数据都会触发，缓冲区剩余未读尽的数据会导致epoll_wait返回。
+- ET模式(边缘触发)：只有数据到来才触发，不管缓存区中是否还有数据，缓冲区剩余未读尽的数据不会导致epoll_wait返回；
+- LT 模式(水平触发，默认)：只要有数据都会触发，缓冲区剩余未读尽的数据会导致epoll_wait返回。
 
-## 6.9 TCP回射服务器程序(epoll)
+## 6.8 TCP回射服务器程序(epoll)
 
 - TCP回射服务端程序：[tcpserv_epoll](source/06-select-poll-epoll/epoll/tcpserv_epoll.c)    
 - TCP回射客户端程序：[tcpcli_epoll](source/06-select-poll-epoll/epoll/tcpcli_epoll.c)
 
-# 第七章 套接字选项
-
-## 7.1 getsockopt和setsockopt函数
-这两个函数仅用于套接字。
-- setsockopt从*optvat中取得选项待设置的新值；
-- getsockopt则把已获取的选项当前值存放到*optval中；
-```c++
-#include <sys/socket.h>
-int getsockopt(int sockfd, int level,int optname,void *optval,socklen_t *optlen);
-int setsockopt (int sockfd, int level,int optname,const void *optval,socklen_t optlen);
-/*均返回:若成功则为0。若出错则为-1*/
-```
-- sockfd必须指向一个打开的套接字描述符
-- level(级别)指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码（例如IPv4、IPv6、TCP或SCTP)。
-- optval是一个指向某个变量(*optval)的指针
-
-![](images/36.jpg)
-
-![](images/38.jpg)
-
-![](images/37.jpg)
-
-## 7.2 fcntl函数
-fcntl函数可执行各种描述符控制操作。
-
-![](images/39.jpg)
-
-- 非阻塞式I/O       
-通过使用F_SETFL命令设置O_NONBLOCK文件状态标志，我们可以把一个套接字设置为非阻塞型。
-- 信号驱动式IO      
-通过使用F_SETFL命令设置O_ASYNC文件状态标志，我们可以把一个套接字设置成一旦其状态发生变化，内核就产生一个STGIO信号。
-- F_SETOWN命令允许我们指定用于接收STGIO和SIGURC信号的套接字属主(进程ID或进程组ID)。     
-其中STGIO信号是套接字被设置为信号驱动式I/O型后产生的，SIGURG信号是在新的带外数据到达套接字时产生的
-
-```c++
-#include <fcntl.h>
-int fcntl(int fd，int cmd,... /* int arg */ );
-/*返回,若成功则取决于cmd，若出错则为-1*/
-```
-每种描述符（包括套接字描述符）都有一组由F_GETFL命令获取或由F_SETFL命令设置的文件标志。其中影响套接字描述符的两个标志是:
-- O_NONBLOCK-———非阻塞式I/O;
-- O_ASYNC———信号驱动式IO。
-
 # 第八章 基本UDP套接字编程
 
-UDP是无连接不可靠的数据报协议，非常不同于TCP提供的面向连接的可靠字节流。使用UDP编写的一些常见的应用程序有:DNS(域名系统)、NFS（网络文件系统）和SNMP(简单网络管理协议)。
+UDP是无连接不可靠的数据报协议，非常不同于TCP提供的面向连接的可靠字节流。使用UDP编写的一些常见的应用程序有:DNS(域名系统)、NFS(网络文件系统)和SNMP(简单网络管理协议)。
 
 ![](images/40.jpg)
 
-## 8.1 recvfrom和sendto函数
-这两个函数类似于标准的read和write函数，不过需要三个额外的参数。
-```c++
-#include <sys/socket.h>
-ssize_t recvfrom (int sockfd, void *buff, size_t nbytes,int flags ,
-                  struct sockaddr *from, socklen_t *addrlen );
-ssize_t sendto(int sockfil,const void *buff, size_t nbytes, int flags ,
-               const struct sockaddr *to,socklen_t *addrlen ) ;
-/*均返回:若成功则为读或写的字节数，若出错则为-l*/
-```
-- 前三个参数sockfd、buff和nbytes等同于read和write函数的三个参数:描述符、指向读入或写出缓冲区的指针和读写字节数。
-- sendto的to参数指向一个含有数据报接收者的协议地址（例如IP地址及端口号）的套接字地址结构，其大小由addrlen参数指定。
-- recvfrom的from参数指向一个将由该函数在返回时填写数据报发送者的协议地址的套接字地址结构，而在该套接字地址结构中填写的字节数则放在addrlen参数所指的整数中返回给调用者。
-> 注意，sendto的最后一个参数是一个整数值，而recvfrom的最后一个参数是一个指向整数值的指针（即值-结果参数)。
 
 ## 8.2 UDP 回射C/S 程序
 
@@ -1071,14 +1423,14 @@ UDP套接字调用connect:没有三路握手过程。内核只是检查是否存
 
 fork调用存在一些问题：
 - fork是昂贵的。fork要把父进程的内存映像复制到子进程,并在子进程中复制所有描述符，等等。
-- fork返回之后父子进程之间信息的传递需要进程间通信（IPC)机制。
+- fork返回之后父子进程之间信息的传递需要进程间通信(IPC)机制。
 
 线程的创建可能比进程的创建快10~100倍。同一进程内的所有线程共享相同的全局内存。这使得线程之间易于共享信息，然而伴随这种简易性而来的却是同步(synchronization)问题。
 
 同一进程内的所有线程除了共享全局变量外还共享;
 - 进程指令:
 - 大多数数据;
-- 打开的文件（即描述符);
+- 打开的文件(即描述符);
 - 信号处理函数和信号处置;
 - 当前工作目录;
 - 用户ID和组ID。
@@ -1143,7 +1495,7 @@ void pthread_exit (void *status ) ;
 /*不返回到调用者*/
 ```
 让一个线程终止的另外两个方法是:
-- 启动线程的函数（即pthread_create的第三个参数）可以返回。既然该函数必须声明成返回一个void指针，它的返回值就是相应线程的终止状态。
+- 启动线程的函数(即pthread_create的第三个参数)可以返回。既然该函数必须声明成返回一个void指针，它的返回值就是相应线程的终止状态。
 - 如果进程的main函数返回或者任何线程调用了exit，整个进程就终止，其中包括它的任何线程。
 
 ## 9.2 使用线程的TCP回射服务器程序
