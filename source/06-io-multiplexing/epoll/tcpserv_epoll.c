@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   /*(4) 设置epoll*/
 	epfd = epoll_create(EPOLL_SIZE);/*生成用于处理accept的epoll专用文件描述符*/	
 	ev.data.fd = listenfd;/*设置监听描述符*/
-	ev.events = EPOLLIN | EPOLLET;/*设置处理事件类型*/
+	ev.events = EPOLLIN | EPOLLET;/*设置处理事件类型 ET模式*/
 	if(epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev)<0) {	/*注册事件*/	
     printf("epoll_ctl error \n");
     exit(1);
