@@ -1241,7 +1241,7 @@ Proactor模式将所有IO操作都交给主线程和内核来处理，工作线�
 
 ## 7.5 两种高效的并发模式
 
-并发模式是指IO处理单元和多个逻辑单元之间协调完成任务的方法。服务器主要有两种并发编程模式﹔半同步/半异步（half-syncthalf-async）模式和领导者/追随者（Lcader/Followers）模式。
+并发模式是指IO处理单元和多个逻辑单元之间协调完成任务的方法。服务器主要有两种并发编程模式﹔半同步/半异步（half-sync/half-async）模式和领导者/追随者（Leader/Followers）模式。
 
 ### 半同步/半异步模式
 
@@ -1251,16 +1251,41 @@ Proactor模式将所有IO操作都交给主线程和内核来处理，工作线�
 
 半同步/半异步模式中，同步线程用于处理客户逻辑，相当于逻辑单元﹔异步线程用于处理IO事件，相当于I/O处理单元。异步线程监听到客户请求后，就将其封装成请求对象并插入请求队列中。请求队列将通知某个工作在同步模式的工作线程来读取并处理该请求对象。具体选择哪个工作线程来为新的客户请求服务，则取决于请求队列的设计。
 
-![](images/78.jpg)
+### 领导者/追随者模式
 
+领导者/追随者模式是多个工作线程轮流获得事件源集合，轮流监听、分发并处理事件的一种模式。在任意时间点，程序都仅有一个领导者线程，它负责监听IO事件。而其他线程则都是追随者，它们休眠在线程池中等待成为新的领导者。当前的领导者如果检测到IO事件，首先要从线程池中推选出新的领导者线程，然后处理I/O事件。此时，新的领导者等待新的IO事件，而原来的领导者则处理I/O事件，二者实现了并发。
 
-# 第五章 TCP C/S程序示例
+领导者/追随者模式包含如下几个组件:句柄集(HandleSet)、线程集（ThreadSet)、事件处理器（EventHandler）和具体的事件处理器（ConcreteEventHandler)。
+
+![](images/81.jpg)
+
+## 7.6 有限状态机
+逻辑单元内部的一种高效编程方法:有限状态机（finite statemachine)。
+
+有的应用层协议头部包含数据包类型字段，每种类型可以映射为逻辑单元的一种执行状态，服务器可以根据它来编写相应的处理逻辑。
+```c++
+STATE_MACHINE(Package _pack)
+{
+    PackageType _type =_pack.GetType ();
+    witch (_type)
+    {
+        case type_n:
+            process_package_A(_pack);
+            break;
+        case type_B:
+            process_package_B(_pack);
+            break;
+    }
+}
+```
+
+# 第八章 TCP C/S程序示例
 
 **简单的回射客户/服务器**
 
 ![](images/24.jpg)
 
-## 5.1 POSIX信号处理
+## 8.1 POSIX信号处理
 
 信号(signal)就是告知某个进程发生了某个事件的通知，有时也称为软件中断。信号通常是异步发生的，也就是说进程预先不知道信号的准确发生时刻。信号可以:
 - 由一个进程发给另一个进程(或自身);
@@ -1303,7 +1328,7 @@ Sigfunc* signal(int signo, Sigfunc *func)
 	return(oact.sa_handler);
 }
 ```
-## 5.2 处理SIGCHLD信号
+## 8.2 处理SIGCHLD信号
 
 设置僵死(zombie)状态的目的是维护子进程的信息，以便父进程在以后某个时候获取。这些信息包括子进程的进程ID、终止状态以及资源利用信息(CPU时间、内存使用量等等)。
 
@@ -1338,7 +1363,7 @@ for (;;) {
     }  // if
 }
 ```
-## 5.3 wait和waitpid函数
+## 8.3 wait和waitpid函数
 用来清理已终止子进程(僵尸进程)
 ```c++
 #include <sys/wait.h>
@@ -1366,7 +1391,7 @@ void sig_chld(int signo)
 	return;
 }
 ```
-## 5.4 服务器最终版本
+## 8.4 服务器最终版本
 考虑在网络编程时可能会遇到的三种情况:
 1. 当fork子进程时，必须捕获STGCHLD信号
 2. 当捕获信号时，必须处理被中断的系统调用
@@ -1376,7 +1401,7 @@ void sig_chld(int signo)
 - TCP回射服务端程序：[tcpserv](source/05-tcp-cs/tcpserv.c)    
 - TCP回射客户端程序：[tcpcli](source/05-tcp-cs/tcpcli.c)
 
-## 5.5 accept返回前连接中止
+## 8.5 accept返回前连接中止
 
 ESTABLISHED状态的连接在调用accept之前收到RST(复位)
 
@@ -1385,32 +1410,32 @@ ESTABLISHED状态的连接在调用accept之前收到RST(复位)
 该问题将在内核中处理，服务器进程看不到：将返回一个ECONNVABORTED错误给服务器进程，作为accept的返回结果。服务器就可以忽略它，再次调用accept就行。
 > select函数和正常阻塞模式下的监听套接字组合时将产生问题
 
-## 5.6 服务器进程终止
+## 8.6 服务器进程终止
 
 当FIN到达套接字时，客户正阻塞在fgets调用上。客户实际上在应对两个描述符——套接字和用户输入，它不能单纯阻塞在这两个源中某个特定源的输入上，而是应该阻塞在其中任何一个源的输入上。
 >事实上这正是select和poll这两个函数的目的之一
 
-## 5.7 SIGPIPE信号
+## 8.7 SIGPIPE信号
 
 当一个进程向某个己收到RST的套接字执行写操作时，内核向该进程发送一个SIGPIPE信号。该信号的默认行为是终止进程，因此进程必须捕获它以兔不情愿地被终止。不论该进程是捕获了该信号并从其信号处理函数返回，还是简单地忽略该信号，写操作都将返回EP工PE错误。
 
-## 5.8 服务器主机崩溃
+## 8.8 服务器主机崩溃
 
 客户最终还是会发现对端主机已崩溃或不可达，不过有时候我们需要比不得不等待9分钟更快地检测出这种情况。所用方法就是对readline调用设置一个超时。
 
 这种情形只有向服务器主机发送数据时才能检测出它己经崩溃。如果不主动向它发送数据也想检测出服务器主机的崩溃，那么需要采用另外一个技术：SO_KEEPALIVE套接字选项。
 
-## 5.9 服务器主机崩溃后重启
+## 8.9 服务器主机崩溃后重启
 
 如果对客户而言检测服务器主机崩溃与否很重要，即使客户不主动发送数据也要能检测出来，就需要采用其他某种技术(诸如SO_KEEPALIVE套接字选项或某些客户/服务器心搏函数),
 
-## 5.10 服务器主机关机
+## 8.10 服务器主机关机
 
 Unix系统关机时，init进程通常先给所有进程发送SIGTERM信号(该信号可被捕获)，等待一段固定的时间，然后给所有仍在运行的进程发送SIGKILL信号(该信号不能被捕获)。
 
 如果不捕获SIGTERM信号并终止，服务器将由SIGKILL信号终止。当服务器子进程终止时，它的所有打开着的描述符都被关闭，随后发生的步骤与服务器进程终止一样。正如那一节所述，必须在客户中使用select或poll函数，使得服务器进程的终止一经发生，客户就能检测到。
 
-# 第六章 I/O复用：select和poll函数
+# 第九章 I/O复用
 
 内核一旦发现进程指定的一个或多个IO条件就绪(也就是说输入已准备好被读取，或者描述符已能承接更多的输出)，它就通知进程。这个能力称为IO复用(IO multiplexing)，是由select和pol1这两个函数支持的。
 
@@ -1421,7 +1446,7 @@ IO复用典型使用在下列网络应用场合：
 - 如果一个服务器即要处理TCP，又要处理UDP。
 - 如果一个服务器要处理多个服务或者多个协议，一般就要使用IO复用。
 
-## 6.1 I/O模型
+## 9.1 I/O模型
 - 阻塞式I/O;
 - 非阻塞式IO;
 - IO复用(select和poll);
@@ -1453,7 +1478,7 @@ IO复用典型使用在下列网络应用场合：
 
 ![](images/31.jpg)
 
-## 6.2 se1ect 函数
+## 9.2 se1ect 函数
 
 该函数允许进程指示内核等待多个事件中的任何一个发生，并只在有一个或多个事件发生或经历一段指定的时间后才唤醒它。
 ```c++
@@ -1470,8 +1495,8 @@ int select(int maxfdpl ,fd_set *readset,fd_set *writeset,fd_set *exceptset,
 - timeout 它告知内核等待所指定描述符中的任何一个就绪可花多长时间。其timeval结构用于指定这段时间的秒数和微秒数。
     ```c++
     struct timeval {
-        long tv_sec;    /*seconds */
-        long tv_usec;   /*microseconds */
+        long tv_sec;    /*秒数 */
+        long tv_usec;   /*微秒数 */
     };
     ```
     这个参数有以下三种可能：
@@ -1481,18 +1506,18 @@ int select(int maxfdpl ,fd_set *readset,fd_set *writeset,fd_set *exceptset,
 
 select使用描述符集指定一个或多个描述符值，通常是一个整数数组，其中每个整数中的每一位对应一个描述符。
 ```c++
-void FD_ZERO (fd_set *fcset) ;          /* clear all bits in fdset */
-void FD_SET(int fd, fd_set * jdser) ;   /* turn on the bit for fd in fdset */
-void FD_CLR(int fl，fd_set * jidset) ;  /* trun off the bit for fd in fdset */
-int FD_ISSET (int fd,fd_act *fdset ) ;  /* is the bit for fd on in fdset ? * /
+void FD_ZERO (fd_set *fcset) ;          /*清除 fdset 的所有位 */
+void FD_SET(int fd, fd_set * jdser) ;   /*设置 fdset 的位fd */
+void FD_CLR(int fl，fd_set * jidset) ;  /*清除 fdset 的位fd */
+int FD_ISSET (int fd,fd_act *fdset ) ;  /*测试 fdset 的位fd 是否被设置 * /
 ```
 调用该函数时，我们指定所关心的描述符的值，该函数返回时，结果将指示哪些描述符已就绪。该函数返回后，我们使用FD_ISSET宏来测试fd_set数据类型中的描述符。描述符集内任何与未就绪描述符对应的位返回时均清成0。为此，每次重新调用select函数时,我们都得再次把所有描述符集内所关心的位均置为1。
 
- ## 6.3 描述符就绪条件
+ ## 9.3 描述符就绪条件
 
 ![](images/32.jpg)
 
-## 6.4 TCP回射服务器程序 (select)
+## 9.4 TCP回射服务器程序 (select)
 
 - TCP回射服务端程序：[tcpserv_select](source/06-select-poll-epoll/select/tcpserv_select.c)    
 - TCP回射客户端程序：[tcpcli_select](source/06-select-poll-epoll/select/tcpcli_select.c)
@@ -1506,20 +1531,20 @@ int FD_ISSET (int fd,fd_act *fdset ) ;  /* is the bit for fd on in fdset ? * /
 2. 让每个客户由单独的控制线程提供服务(例如创建一个子进程或一个线程来服务每个客户);
 3. 对I/O操作设置一个超时。
 
-## 6.5 poll函数
+## 9.5 poll函数
 
 poll提供的功能与select类似，不过在处理流设备时，它能够提供额外的信息。
 ```c++
 #include <poll.h>
-int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
+int poll(struct pollfd *fdarray,nfds_t nfds,int timeout);
 /*返回:若有就绪描述符则为其数目，若超时则为0，若出错则为-1*/
 ```
 - fdarray参数 是指向一个结构数组第一个元素的指针。每个数组元素都是一个pollfd结构，用于指定测试某个给定描述符fd的条件。
     ```c++
     struct pollfd {
-        int     fd;         /* descriptor to check */
-        short   events;     /*events of intereet on fd */
-        short   revents;    /*events that occurred on fa */
+        int     fd;         /* 文件描述符 */
+        short   events;     /* 注册的事件 */
+        short   revents;    /* 实际发生的事件，由内核填充 */
     };
     ```
     要测试的条件由events成员指定，函数在相应的revents成员中返回该描述符的状态。
@@ -1527,7 +1552,10 @@ int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
     ![](images/33.jpg)
 
     poll识别三类数据:普通(normal)、优先级带(priority band)和高优先级(high priority)
-
+-  nfds参数指定被监听事件集合fds的大小。其类型nfds_t的定义如下:
+    ```c++
+    typedef unsigned long int nfds_t;
+    ```
 - timeout参数 指定poll函数返回前等待多长时间。它是一个指定应等待毫秒数的正值。
 
     ![](images/34.jpg)
@@ -1536,17 +1564,19 @@ int poll(struct pollfd *fdarray,unsigned long nfds,int timeout);
 
 当发生错误时，poll函数的返回值为-1，若定时器到时之前没有任何描述符就绪，则返回0，否则返回就绪描述符的个数，即revents成员值非0的描述符个数。
 
-## 6.6 TCP回射服务器程序 (poll)
+## 9.6 TCP回射服务器程序 (poll)
 
 - TCP回射服务端程序：[tcpserv_poll](source/06-select-poll-epoll/poll/tcpserv_poll.c)    
 - TCP回射客户端程序：[tcpcli_poll](source/06-select-poll-epoll/poll/tcpcli_poll.c)
 
 
-## 6.7 epoll函数
+## 9.7 epoll函数
 
 select的套接字等待集合为fd_set，poll的套接字等待集合为pollfd结构体。但是由于select和poll的套接字等待集合的容量太小，一般是1024，使得进程不能同时处理大规模I/O请求，因此引入epoll。
 
-poll提供了三个函数，epoll_create是创建一个epoll句柄；epoll_ctl是注册要监听的事件类型；epoll_wait则是等待事件的产生。
+epoll使用一组函数来完成任务，而不是单个函数。其次，epoll把用户关心的文件描述符上的事件放在内核里的一个事件表中，从而无须像select和 poll那样每次调用都要重复传入文件描述符集或事件集。但epoll 需要使用一个额外的文件描述符，来唯一标识内核中的这个事件表。
+
+epoll提供了三个函数，epoll_create是创建一个epoll句柄；epoll_ctl是注册要监听的事件类型；epoll_wait则是等待事件的产生。
 
 ### epoll_create
 ```c++
@@ -1573,8 +1603,8 @@ int epoll_ctl(int epfd, int op, int fd, struct poll_event *event);
 - event参数 为监视对象的事件类型。epoll 通过epoll_event结构体保存事件的文件描述符集合。
     ```c++
     struct epoll_event {
-        __uint32_t events;
-        epoll_data_t data;
+        __uint32_t events; /*epoll事件*/
+        epoll_data_t data; /*用户数据*/
     };
     typedef union epoll_data {
         void *ptr;
@@ -1599,9 +1629,11 @@ int epoll_ctl(int epfd, int op, int fd, struct poll_event *event);
     - EPOLLRDHUP：断开连接或半关闭的情况，这在边缘触发方式下非常有用
     - EPOLLERR：发生错误的情况
     - EPOLLET：以边缘触发的方式得到事件通知
-    - EPOLLONESHOT：发生一次事件后，相应文件描述符不再收到事件通知。因此需要向 epoll_ctl 函数的第二个参数传递 EPOLL_CTL_MOD ，再次设置事件。
+    - EPOLLONESHOT：操作系统最多触发其上注册的一个可读、可写或者异常事件，且只触发一次，除非我们使用epoll_ctl函数重置该文件描述符上注册的EPOLLONESHOT事件
+
 
 ### epoll_wait
+epoll系列系统调用的主要接口是epoll_wait函数。它在一段超时时间内等待一组文件描述符上的事件
 ```c++
 #include <sys/epoll.h>
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
@@ -1640,21 +1672,7 @@ epoll为什么要有EPOLLET触发模式？
     fd文件属性默认为阻塞，client给server发一次数据，server的epoll_wait就返回一次，无论缓冲区是否还有数据，都只返回一次，此时如果使用while(recv())可以读完数据，但是读到最后一次recv()会阻塞。
 - 非阻塞边沿触发nonblock-ET     
     这个就是在阻塞的基础上更改fd的属性，可以利用open函数或者fcntl函数更改
-    ```c++
-    #include <fcntl.h>
-    int fcntl(int fields, int cmd, ...);
-    /*返回：成功则为 cmd 参数相关值，若失败则为 -1*/
-    ```
-    - filedes : 属性更改目标的文件描述符
-    - cmd : 表示函数调用目的
-        - F_GETFL:获得第一个参数所指的文件描述符属性(int 型)
-        - F_SETFL:更改文件描述符属性
 
-    将文件(套接字)改为非阻塞模式，需要如下  2 条语句:
-    ```c++
-    int flag = fcntl(fd,F_GETFL,0);
-    fcntl(fd,F_SETFL,flag|O_NONBLOCK)
-    ```
 **边缘触发的时机:**
 
 对于读操作:
@@ -1671,10 +1689,14 @@ epoll为什么要有EPOLLET触发模式？
 - ET模式(边缘触发)：只有数据到来才触发，不管缓存区中是否还有数据，缓冲区剩余未读尽的数据不会导致epoll_wait返回；
 - LT 模式(水平触发，默认)：只要有数据都会触发，缓冲区剩余未读尽的数据会导致epoll_wait返回。
 
-## 6.8 TCP回射服务器程序(epoll)
+## 9.8 TCP回射服务器程序(epoll)
 
 - TCP回射服务端程序：[tcpserv_epoll](source/06-select-poll-epoll/epoll/tcpserv_epoll.c)    
 - TCP回射客户端程序：[tcpcli_epoll](source/06-select-poll-epoll/epoll/tcpcli_epoll.c)
+
+## 9.9 三组IO复用函数的比较
+
+![](images/84.jpg)
 
 # 第八章 基本UDP套接字编程
 
